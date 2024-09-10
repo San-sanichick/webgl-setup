@@ -8,7 +8,10 @@ import plainText from 'vite-plugin-plain-text'
 export default defineConfig({
     plugins: [
         vue(),
-        plainText([/\.glsl$/]),
+        plainText(
+            [/\.glsl$/],
+            { namedExport: false, dtsAutoGen: true, distAutoClean: true },
+        ),
     ],
     resolve: {
         alias: {

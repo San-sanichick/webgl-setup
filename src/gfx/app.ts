@@ -1,6 +1,5 @@
 import { Vector4, MathUtils } from "threejs-math";
-//@ts-ignore
-import WebGLDebugUtils from "webgl-debug";
+// import WebGLDebugUtils        from "webgl-debug";
 
 import GL           from "./gl/GL";
 import OrthoCamera  from "./gl/camera/orthoCamera";
@@ -8,11 +7,8 @@ import TextResource from "./utils/textResource";
 import Shader       from "./gl/shader";
 import Quad         from "./gl/primitives/quad";
 
-//@ts-ignore
-import { plainText as Vert } from "@/assets/shaders/vert.glsl"
-//@ts-ignore
-import { plainText as Frag } from "@/assets/shaders/frag.glsl"
-// import { toRadians } from "./utils/math";
+import Vert from "@/assets/shaders/vert.glsl";
+import Frag from "@/assets/shaders/frag.glsl"
 
 
 
@@ -22,14 +18,16 @@ export default class App2D
     private _canvas: HTMLCanvasElement;
     private _scale: number = 10;
 
+
     constructor(canvas: HTMLCanvasElement)
     {
         this._canvas = canvas;
         const ctx = canvas.getContext("webgl2")!;
-        //@ts-ignore
-        const gl = GL.get(WebGLDebugUtils.makeDebugContext(ctx));
+        // const gl = GL.get(WebGLDebugUtils.makeDebugContext(ctx));
+        const gl = GL.get(ctx);
         gl.viewport(0, 0, canvas.width, canvas.height);
     }
+
 
     public get scale()
     {
@@ -61,7 +59,7 @@ export default class App2D
         const camera = new OrthoCamera(aspectRatio, -1000, 1000);
 
         const delta = 1;
-        const angleDelta = MathUtils.degToRad(1);
+        const angleDelta = MathUtils.degToRad(5);
 
         document.addEventListener("keydown", (e: KeyboardEvent) =>
         {

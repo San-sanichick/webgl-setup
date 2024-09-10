@@ -27,7 +27,6 @@ export default class OrthoCamera extends Camera
 
     public override update()
     {
-        this._view = new Matrix4();
         this._view.identity();
         this._view.makeTranslation(this._pos.x, this._pos.y, this._pos.z);
         this._view.multiply(new Matrix4().makeRotationZ(this._angle));
