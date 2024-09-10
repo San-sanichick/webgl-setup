@@ -1,4 +1,4 @@
-import { Vector4 } from "threejs-math";
+import { Vector4, MathUtils } from "threejs-math";
 //@ts-ignore
 import WebGLDebugUtils from "webgl-debug";
 
@@ -12,7 +12,7 @@ import Quad         from "./gl/primitives/quad";
 import { plainText as Vert } from "@/assets/shaders/vert.glsl"
 //@ts-ignore
 import { plainText as Frag } from "@/assets/shaders/frag.glsl"
-import { toRadians } from "./utils/math";
+// import { toRadians } from "./utils/math";
 
 
 
@@ -61,7 +61,7 @@ export default class App2D
         const camera = new OrthoCamera(aspectRatio, -1000, 1000);
 
         const delta = 1;
-        const angleDelta = toRadians(1);
+        const angleDelta = MathUtils.degToRad(1);
 
         document.addEventListener("keydown", (e: KeyboardEvent) =>
         {
@@ -94,11 +94,6 @@ export default class App2D
             {
                 camera.moveTo(curPos.setX(curPos.x + delta));
             }
-
-            // if (e.key === "q")
-            // {
-            //     cancelAnimationFrame(requestId);
-            // }
         });
 
 
