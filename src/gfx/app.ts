@@ -7,8 +7,15 @@ import TextResource from "./utils/textResource";
 import Shader       from "./gl/shader";
 import Quad         from "./gl/primitives/quad";
 
+import { getImageData } from "./utils/img";
+import ImageResource    from "./utils/imageResource";
+import Texture          from "./gl/texture";
+
 import Vert from "@/assets/shaders/vert.glsl";
 import Frag from "@/assets/shaders/frag.glsl"
+
+// @ts-ignore
+import Container from "@/assets/textures/container.jpg?uint8array";
 
 
 
@@ -62,7 +69,7 @@ export default class App2D
     }
 
 
-    public run()
+    public async run()
     {
         const gl = GL.get();
         let requestId: number;
@@ -71,13 +78,17 @@ export default class App2D
         const vertRes = new TextResource(Vert);
         const fragRes = new TextResource(Frag);
 
+        const data = await getImageData(Container);
+        const texRes = new ImageResource(data, 3);
+
         const shader = new Shader(vertRes, fragRes);
+        const texture = new Texture(texRes);
+        texture.bind(0);
 
-
-        const left = -8;
-        const top = 8;
-        const w = 16;
-        const h = 16;
+        const left = -0.5;
+        const top = 0.5;
+        const w = 1;
+        const h = 1;
 
         const quad = new Quad(left, top, w, h);
 
@@ -131,7 +142,7 @@ export default class App2D
 
 
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
-        const cRadius = 2;
+        const cRadius = 0.5;
         const cCenter = new Vector2(w / 2, h / 2);
 
         const draw = () =>
