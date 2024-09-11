@@ -83,7 +83,6 @@ export default class App2D
 
             if (e.code === "KeyW")
             {
-                console.log(e.code);
                 camera.moveTo(curPos.setY(curPos.y - delta));
             }
             if (e.code === "KeyS")
