@@ -28,10 +28,14 @@ export default class Quad
     {
         this._vertices = [
             // pos                           // UV
-            left + width, top,          0.0, 0.0, 0.0,
-            left + width, top - height, 0.0, width, 0.0,
-            left,         top - height, 0.0, width, height,
-            left,         top,          0.0, 0.0, height,
+            left + width, top,          0.0, width, 0.0,
+            left + width, top - height, 0.0, width, height,
+            left,         top - height, 0.0, 0.0, height,
+            left,         top,          0.0, 0.0, 0.0,
+            // left + width, top,          0.0, 0.0, 0.0,
+            // left + width, top - height, 0.0, width, 0.0,
+            // left,         top - height, 0.0, width, height,
+            // left,         top,          0.0, 0.0, height,
         ];
 
         this._vb = new VertexBuffer(this._vertices);

@@ -18,7 +18,8 @@ export async function getImageData(img: Uint8Array): Promise<ImageData>
 
             if (!ctx) reject("Failed to get 2D context");
 
-            ctx!.drawImage(image, 0, 0);
+            ctx!.scale(1, -1);
+            ctx!.drawImage(image, 0, -height);
             resolve(ctx!.getImageData(0, 0, width, height));
         }
         image.onerror = () =>
