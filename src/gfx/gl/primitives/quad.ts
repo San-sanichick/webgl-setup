@@ -11,12 +11,7 @@ import VertexArray from "../vertexArray";
 
 export default class Quad
 {
-    private _vertices: Array<number> = [
-         0.5,  0.5, 0.0,
-         0.5, -0.5, 0.0,
-        -0.5, -0.5, 0.0, 
-        -0.5,  0.5, 0.0
-    ];
+    private _vertices: Array<number>;
     private _indices: Array<number> = [
         0, 1, 3,
         1, 2, 3
@@ -29,13 +24,23 @@ export default class Quad
     private _model: Matrix4 = new Matrix4();
 
 
-    constructor()
+    constructor(left: number, top: number, width: number, height: number)
     {
+        this._vertices = [
+            // pos                           // UV
+            left + width, top,          0.0, 0.0, 0.0,
+            left + width, top - height, 0.0, width, 0.0,
+            left,         top - height, 0.0, width, height,
+            left,         top,          0.0, 0.0, height,
+        ];
+        console.log(this._vertices)
+
         this._vb = new VertexBuffer(this._vertices);
         this._ib = new IndexBuffer(this._indices);
 
         const layout = new VertexBufferLayout([
-            new VertexBufferElement("aPos", BufferType.Float3)
+            new VertexBufferElement("aPos", BufferType.Float3),
+            new VertexBufferElement("aUV", BufferType.Float2),
         ]);
         this._vb.layout = layout;
 

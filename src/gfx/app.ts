@@ -1,4 +1,4 @@
-import { Vector4, MathUtils } from "threejs-math";
+import { Vector4, MathUtils, Vector2 } from "threejs-math";
 // import WebGLDebugUtils        from "webgl-debug";
 
 import GL           from "./gl/GL";
@@ -50,7 +50,13 @@ export default class App2D
         const fragRes = new TextResource(Frag);
 
         const shader = new Shader(vertRes, fragRes);
-        const quad = new Quad();
+        
+        const left = -2;
+        const top = 2;
+        const w = 4;
+        const h = 4;
+
+        const quad = new Quad(left, top, w, h);
 
         const width = this._canvas.width;
         const height = this._canvas.height;
@@ -96,7 +102,8 @@ export default class App2D
 
 
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
-
+        const cRadius = w / 4;
+        const cCenter = new Vector2(w / 2, h / 2);
 
         const draw = () =>
         {
@@ -107,6 +114,8 @@ export default class App2D
             camera.update();
 
             quad.draw(shader, camera);
+            shader.setUniform2f("cCenter", cCenter);
+            shader.setUniformFloat("cRadius", cRadius);
             shader.setUniform4f("color", color);
             requestId = requestAnimationFrame(draw);
         }
