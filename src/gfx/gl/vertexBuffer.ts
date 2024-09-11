@@ -71,6 +71,7 @@ export class VertexBufferLayout
     constructor(elements: Array<VertexBufferElement>)
     {
         this._elements = elements;
+        this.calcStride();
     }
 
     public get elements(): Array<VertexBufferElement>
