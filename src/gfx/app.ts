@@ -1,5 +1,8 @@
-import { Vector4, MathUtils, Vector2 } from "threejs-math";
-// import WebGLDebugUtils        from "webgl-debug";
+import {
+    Vector4,
+    MathUtils,
+    Vector2
+} from "threejs-math";
 
 import GL           from "./gl/GL";
 import OrthoCamera  from "./gl/camera/orthoCamera";
@@ -31,13 +34,13 @@ export default class App2D
         this._canvas = canvas;
 
         const attrs: WebGLContextAttributes = {
-            antialias: true,
-            powerPreference: "default",
-            alpha: false,
-            depth: false,
-            stencil: false,
-            premultipliedAlpha: true,
-            preserveDrawingBuffer: false,
+            antialias                   : true,
+            powerPreference             : "default",
+            alpha                       : false,
+            depth                       : false,
+            stencil                     : false,
+            premultipliedAlpha          : true,
+            preserveDrawingBuffer       : false,
             failIfMajorPerformanceCaveat: false
         }
 
@@ -47,13 +50,9 @@ export default class App2D
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
 
-        const ctx = canvas.getContext(
-            "webgl2",
-            attrs
-        )!;
-
-        // const gl = GL.get(WebGLDebugUtils.makeDebugContext(ctx));
+        const ctx = canvas.getContext("webgl2", attrs)!;
         const gl = GL.get(ctx);
+
         gl.viewport(0, 0, canvas.width, canvas.height);
     }
 
@@ -86,7 +85,7 @@ export default class App2D
         texture.bind(0);
 
         const left = -0.5;
-        const top = 0.5;
+        const top  = 0.5;
         const w = 1;
         const h = 1;
 

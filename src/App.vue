@@ -20,7 +20,7 @@
     {
         if (!canvas.value) return;
 
-        const app = new App2D(canvas.value, 1500, 1000);
+        const app = new App2D(canvas.value, 1500, 900);
         await app.run();
         scale.value = app.scale;
 
