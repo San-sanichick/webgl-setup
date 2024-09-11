@@ -25,13 +25,13 @@ export default class Shader
 
         gl.compileShader(this._vertId);
         const vertLog = gl.getShaderInfoLog(this._vertId);
-        if (vertLog) console.log(vertLog);
+        if (vertLog) console.error(vertLog);
         
         gl.compileShader(this._fragId);
         const fragLog = gl.getShaderInfoLog(this._fragId);
-        if (fragLog) console.log(fragLog);
+        if (fragLog) console.error(fragLog);
 
-        if (vertLog || fragLog) throw new Error("Error during shader compilation");
+        if (vertLog || fragLog) throw new Error("Could not compile shaders");
 
         this._programId = gl.createProgram();
         if (!this._programId) throw new Error("Could not create program");
@@ -43,7 +43,7 @@ export default class Shader
         const progLog = gl.getProgramInfoLog(this._programId);
         if (progLog)
         {
-            console.log(progLog);
+            console.error(progLog);
             throw new Error(progLog);
         }
 

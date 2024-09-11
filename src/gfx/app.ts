@@ -19,10 +19,32 @@ export default class App2D
     private _scale: number = 10;
 
 
-    constructor(canvas: HTMLCanvasElement)
+    constructor(canvas: HTMLCanvasElement, width: number, height: number)
     {
         this._canvas = canvas;
-        const ctx = canvas.getContext("webgl2")!;
+
+        const attrs: WebGLContextAttributes = {
+            antialias: true,
+            powerPreference: "default",
+            alpha: false,
+            depth: false,
+            stencil: false,
+            premultipliedAlpha: true,
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+
+        const ctx = canvas.getContext(
+            "webgl2",
+            attrs
+        )!;
+
         // const gl = GL.get(WebGLDebugUtils.makeDebugContext(ctx));
         const gl = GL.get(ctx);
         gl.viewport(0, 0, canvas.width, canvas.height);
@@ -50,11 +72,12 @@ export default class App2D
         const fragRes = new TextResource(Frag);
 
         const shader = new Shader(vertRes, fragRes);
-        
-        const left = -2;
-        const top = 2;
-        const w = 4;
-        const h = 4;
+
+
+        const left = -8;
+        const top = 8;
+        const w = 16;
+        const h = 16;
 
         const quad = new Quad(left, top, w, h);
 
@@ -71,6 +94,13 @@ export default class App2D
         {
             const curPos = camera.getCurPos();
             const angle = camera.getCurAngle();
+
+            if (e.code === "Escape")
+            {
+                cancelAnimationFrame(requestId);
+                requestId = -1;
+                return;
+            }
 
             if (e.code === "KeyQ")
             {
@@ -101,7 +131,7 @@ export default class App2D
 
 
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
-        const cRadius = w / 4;
+        const cRadius = 2;
         const cCenter = new Vector2(w / 2, h / 2);
 
         const draw = () =>
@@ -116,6 +146,8 @@ export default class App2D
             shader.setUniform2f("cCenter", cCenter);
             shader.setUniformFloat("cRadius", cRadius);
             shader.setUniform4f("color", color);
+
+
             requestId = requestAnimationFrame(draw);
         }
 

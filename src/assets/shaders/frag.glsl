@@ -33,10 +33,5 @@ void main()
     if (finalColor.rgb == vec3(0.0))
         discard;
 
-
-    // float d = distance(cCenter, UVCoord);
-    // float circle = step(cRadius, d);
-    //
-    // outColor = vec4(vec3(circle), 1.0);
     outColor = color;
 }

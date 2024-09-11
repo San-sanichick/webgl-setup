@@ -9,6 +9,7 @@
     "checkJs": false,
     "esModuleInterop": true,
     "typeRoots": ["./typings"],
+    "types": ["vite-plugin-arraybuffer/types"],
 
     "baseUrl": ".",
     "paths": {
