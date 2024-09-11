@@ -33,7 +33,6 @@ export default class Quad
             left,         top - height, 0.0, width, height,
             left,         top,          0.0, 0.0, height,
         ];
-        console.log(this._vertices)
 
         this._vb = new VertexBuffer(this._vertices);
         this._ib = new IndexBuffer(this._indices);

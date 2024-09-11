@@ -16,12 +16,12 @@
     const min = 0;
     const max = 19;
 
-    onMounted(() =>
+    onMounted(async () =>
     {
         if (!canvas.value) return;
 
         const app = new App2D(canvas.value, 1500, 1000);
-        app.run();
+        await app.run();
         scale.value = app.scale;
 
         watch(scale, (val) =>

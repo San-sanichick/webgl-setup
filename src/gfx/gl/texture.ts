@@ -1,28 +1,29 @@
 import ImageResource from "../utils/imageResource";
 import GL from "./GL";
 
-// I love javascript, this probably won't work
+// I love javascript, I hope the WebGL spec doesn't change these number, istg
 enum ImageMode
 {
-    RGB = GL.get().RGB,
-    RGBA = GL.get().RGBA,
+    RGB = 0x1907,
+    RGBA = 0x1908,
 }
 
 enum TextureWrapping
 {
-    Repeat = GL.get().REPEAT,
-    Mirror = GL.get().MIRRORED_REPEAT,
-    ClampToEdge = GL.get().CLAMP_TO_EDGE,
+    Repeat = 0x2901,
+    Mirror = 0x8370,
+    ClampToEdge = 0x812F,
 }
+
 
 enum TextureFiltering
 {
-    Linear   = GL.get().LINEAR,
-    Nearest  = GL.get().NEAREST,
-    MipmapNN = GL.get().NEAREST_MIPMAP_NEAREST,
-    MipmapLN = GL.get().LINEAR_MIPMAP_NEAREST,
-    MipmapNL = GL.get().NEAREST_MIPMAP_LINEAR,
-    MipmapLL = GL.get().LINEAR_MIPMAP_LINEAR,
+    Linear   = 0x2600,
+    Nearest  = 0x2601,
+    MipmapNN = 0x2700,
+    MipmapLN = 0x2701,
+    MipmapNL = 0x2702,
+    MipmapLL = 0x2703,
 }
 
 interface TextureSpec

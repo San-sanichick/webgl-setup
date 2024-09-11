@@ -1,4 +1,3 @@
-
 type ImageChannels = 3 | 4;
 
 export default class ImageResource
@@ -6,11 +5,9 @@ export default class ImageResource
     private _data: ImageData;
     private _channels: number;
 
-    constructor(data: Uint8Array, channels: ImageChannels)
+    constructor(data: ImageData, channels: ImageChannels)
     {
-        const clamped = new Uint8ClampedArray(data);
-        this._data    = new ImageData(clamped, 200);
-
+        this._data     = data;
         this._channels = channels;
     }
 
