@@ -1,6 +1,6 @@
 import {
     Vector4,
-    MathUtils,
+    MathUtils as ThreeMathUtils,
     Vector2
 } from "threejs-math";
 
@@ -10,7 +10,7 @@ import TextResource from "./utils/textResource";
 import Shader       from "./gl/shader";
 import Quad         from "./gl/primitives/quad";
 
-import { getImageData } from "./utils/img";
+import { ImageUtils } from "./utils";
 import ImageResource    from "./utils/imageResource";
 import Texture          from "./gl/texture";
 
@@ -77,7 +77,7 @@ export default class App2D
         const vertRes = new TextResource(Vert);
         const fragRes = new TextResource(Frag);
 
-        const data = await getImageData(Container);
+        const data = await ImageUtils.getImageData(Container);
         const texRes = new ImageResource(data, 3);
 
         const shader = new Shader(vertRes, fragRes);
@@ -98,7 +98,7 @@ export default class App2D
         const camera = new OrthoCamera(aspectRatio, -1000, 1000);
 
         const delta = 1;
-        const angleDelta = MathUtils.degToRad(5);
+        const angleDelta = ThreeMathUtils.degToRad(5);
 
         document.addEventListener("keydown", (e: KeyboardEvent) =>
         {
