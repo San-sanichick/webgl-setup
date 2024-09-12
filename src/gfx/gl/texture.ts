@@ -2,13 +2,13 @@ import ImageResource from "../utils/imageResource";
 import GL from "./GL";
 
 // I love javascript, I hope the WebGL spec doesn't change these number, istg
-enum ImageMode
+export enum TextureMode
 {
     RGB = 0x1907,
     RGBA = 0x1908,
 }
 
-enum TextureWrapping
+export enum TextureWrapping
 {
     Repeat = 0x2901,
     Mirror = 0x8370,
@@ -16,7 +16,7 @@ enum TextureWrapping
 }
 
 
-enum TextureFiltering
+export enum TextureFiltering
 {
     Linear   = 0x2600,
     Nearest  = 0x2601,
@@ -26,10 +26,10 @@ enum TextureFiltering
     MipmapLL = 0x2703,
 }
 
-interface TextureSpec
+export interface TextureSpec
 {
-    sourceMode: ImageMode;
-    storeMode : ImageMode;
+    sourceMode: TextureMode;
+    storeMode : TextureMode;
 
     width: number;
     height: number;
@@ -64,13 +64,13 @@ export default class Texture
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-            let sourceMode = ImageMode.RGBA;
-            let storeMode  = ImageMode.RGBA;
+            let sourceMode = TextureMode.RGBA;
+            let storeMode  = TextureMode.RGBA;
 
             if (source.channels === 3)
             {
-                sourceMode = ImageMode.RGB;
-                storeMode  = ImageMode.RGB;
+                sourceMode = TextureMode.RGB;
+                storeMode  = TextureMode.RGB;
             }
             
             gl.texImage2D(

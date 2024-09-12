@@ -3,7 +3,7 @@ import type Texture from "./texture";
 
 
 
-export default class Frambuffer
+export default class Framebuffer
 {
     private _id: WebGLFramebuffer | null;
 
