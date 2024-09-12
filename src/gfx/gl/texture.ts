@@ -112,6 +112,12 @@ export default class Texture
     }
 
 
+    public get id()
+    {
+        return this._id;
+    }
+
+
     public bind(slot: number): void
     {
         console.assert(slot < 31, "Slot greater than 31");

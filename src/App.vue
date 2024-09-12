@@ -43,7 +43,7 @@
             </div>
 
             <div class="grid grid-cols-2 gap-x-2 items-center">
-                <input type="range" :min="min" :max="max" v-model.number="scale">
+                <input type="range" :min="min" :max="max" step="0.1" v-model.number="scale">
                 <div>{{ scale }}</div>
             </div>
         </div>
