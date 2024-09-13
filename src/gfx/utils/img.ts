@@ -1,4 +1,4 @@
-export async function getImageData(img: Uint8Array): Promise<ImageData>
+export async function getImageData(img: Readonly<Uint8Array>): Promise<ImageData>
 {
     const image = new Image();
     const src = URL.createObjectURL(new Blob([ img ], { type: "image/jpeg" }));

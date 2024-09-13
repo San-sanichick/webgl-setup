@@ -55,7 +55,7 @@ export default class Quad
     }
 
 
-    public draw(shader: Shader, camera: Camera): void
+    public draw(shader: Readonly<Shader>, camera: Readonly<Camera>): void
     {
         shader.bind();
         this._va.bind();

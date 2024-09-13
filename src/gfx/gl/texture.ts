@@ -46,9 +46,9 @@ export default class Texture
 {
     private _id: WebGLTexture | null;
 
-    constructor(spec: TextureSpec);
-    constructor(res: ImageResource);
-    constructor(source: TextureSpec | ImageResource)
+    constructor(spec: Readonly<TextureSpec>);
+    constructor(res: Readonly<ImageResource>);
+    constructor(source: Readonly<TextureSpec | ImageResource>)
     {
         const gl = GL.get();
 
@@ -89,20 +89,21 @@ export default class Texture
         }
         else
         {
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, source.wrapS);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, source.wrapT);
+            const spec = source as Readonly<TextureSpec>;
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, spec.wrapS);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, spec.wrapT);
 
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, source.min);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, source.mag);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, spec.min);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, spec.mag);
 
             gl.texImage2D(
                 gl.TEXTURE_2D,
                 0,
-                source.sourceMode,
-                source.width,
-                source.height,
+                spec.sourceMode,
+                spec.width,
+                spec.height,
                 0,
-                source.storeMode,
+                spec.storeMode,
                 gl.UNSIGNED_BYTE,
                 null
             );

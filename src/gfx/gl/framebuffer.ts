@@ -13,12 +13,12 @@ export default class Framebuffer
     }
 
 
-    public delete()
+    public delete(): void
     {
         GL.get().deleteFramebuffer(this._id);
     }
 
-    public attach(texture: Texture, slot: number)
+    public attach(texture: Readonly<Texture>, slot: number): void
     {
         const gl = GL.get();
         console.assert(slot < 31, "Invalid color attachment slot");
@@ -32,14 +32,14 @@ export default class Framebuffer
         );
     }
 
-    public bind()
+    public bind(): void
     {
         const gl = GL.get();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this._id);
     }
 
 
-    public unbind()
+    public unbind(): void
     {
         const gl = GL.get();
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
