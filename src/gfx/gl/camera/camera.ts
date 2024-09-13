@@ -3,6 +3,9 @@ import { Matrix4, Vector3 } from "threejs-math";
 
 export default abstract class Camera
 {
+    protected _width: number;
+    protected _height: number;
+
     protected _projection: Matrix4 = new Matrix4();
     protected _view: Matrix4 = new Matrix4();
     protected _pos: Vector3;
@@ -14,9 +17,11 @@ export default abstract class Camera
     protected _farPlane: number;
 
 
-    constructor(aspectRatio: number, nearPlane: number, farPlane: number)
+    constructor(width: number, height: number, nearPlane: number, farPlane: number)
     {
-        this._aspectRatio = aspectRatio;
+        this._width = width;
+        this._height = height;
+        this._aspectRatio = width / height;
         this._nearPlane = nearPlane;
         this._farPlane = farPlane;
 

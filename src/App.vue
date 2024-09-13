@@ -26,7 +26,7 @@
 
         watch(scale, (val) =>
         {
-            app.scale = max - val + 1;
+            app.scale = val + 1;
         })
     });
 
@@ -43,7 +43,13 @@
             </div>
 
             <div class="grid grid-cols-2 gap-x-2 items-center">
-                <input type="range" :min="min" :max="max" step="0.1" v-model.number="scale">
+                <input
+                    type="range"
+                    :min="min"
+                    :max="max"
+                    step="0.1"
+                    v-model.number="scale"
+                >
                 <div>{{ scale }}</div>
             </div>
         </div>

@@ -1,7 +1,8 @@
 import {
     Vector4,
     MathUtils as ThreeMathUtils,
-    Vector2
+    Vector2,
+    Vector3
 } from "threejs-math";
 
 import GL           from "./gl/GL";
@@ -12,13 +13,14 @@ import Quad         from "./gl/primitives/quad";
 
 import { ImageUtils } from "./utils";
 import ImageResource    from "./utils/imageResource";
-import Texture          from "./gl/texture";
+import Texture, { TextureFiltering, TextureMode, TextureWrapping }          from "./gl/texture";
 
 import Vert from "@/assets/shaders/vert.glsl";
 import Frag from "@/assets/shaders/frag.glsl"
 
 // @ts-ignore
 import Container from "@/assets/textures/container.jpg?uint8array";
+import Framebuffer from "./gl/framebuffer";
 
 
 
@@ -26,7 +28,7 @@ import Container from "@/assets/textures/container.jpg?uint8array";
 export default class App2D
 {
     private _canvas: HTMLCanvasElement;
-    private _scale: number = 10;
+    private _scale: number = 1;
 
 
     constructor(canvas: HTMLCanvasElement, width: number, height: number)
@@ -93,12 +95,63 @@ export default class App2D
 
         const width = this._canvas.width;
         const height = this._canvas.height;
-        const aspectRatio = width / height;
 
-        const camera = new OrthoCamera(aspectRatio, -1000, 1000);
+        const camera = new OrthoCamera(width, height, -100, 100);
 
         const delta = 1;
         const angleDelta = ThreeMathUtils.degToRad(5);
+
+        // let oldX = width / 2;
+        // let oldY = height / 2;
+
+        let drag = false;
+
+        let oldX = 0;
+        let oldY = 0;
+        this._canvas.addEventListener("mousedown", (e: MouseEvent) =>
+        {
+            drag = true;
+            oldX = e.clientX;
+            oldY = e.clientY;
+        })
+
+        this._canvas.addEventListener("mouseup", () =>
+        {
+            drag = false;
+        })
+
+        const maxScale = 19;
+
+        this._canvas.addEventListener("mousemove", (e: MouseEvent) =>
+        {
+            if (!drag) return;
+
+            const cx = e.clientX;
+            const cy = e.clientY;
+
+            const oldPos = camera.getCurPos();
+            const dx = (cx - oldX) / (width);
+            const dy = (cy - oldY) / (height);
+
+            const newPos = oldPos.add(new Vector3(dx, dy, 0.0));
+
+            camera.moveTo(newPos);
+
+            oldX = cx;
+            oldY = cy;
+        });
+
+
+        document.addEventListener("wheel", (e: WheelEvent) =>
+        {
+            const oldScale = this._scale;
+            const delta = e.deltaY / 100;
+
+            this._scale += delta;
+
+            if (this._scale === 0)
+                this._scale = oldScale;
+        });
 
         document.addEventListener("keydown", (e: KeyboardEvent) =>
         {
@@ -137,12 +190,29 @@ export default class App2D
             {
                 camera.moveTo(curPos.setX(curPos.x + delta));
             }
+            
+            console.log(curPos.x, curPos.y);
         });
 
 
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
         const cRadius = 0.5;
         const cCenter = new Vector2(w / 2, h / 2);
+
+        // const drawTexture = new Texture({
+        //     width: width,
+        //     height: height,
+        //     sourceMode: TextureMode.RGBA,
+        //     storeMode: TextureMode.RGBA,
+        //     wrapS: TextureWrapping.ClampToEdge,
+        //     wrapT: TextureWrapping.ClampToEdge,
+        //     min: TextureFiltering.Linear,
+        //     mag: TextureFiltering.Nearest,
+        // });
+        //
+        // const framebuffer = new Framebuffer();
+        // framebuffer.attach(drawTexture, 0);
+
 
         const draw = () =>
         {
