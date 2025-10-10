@@ -1,3 +1,4 @@
+import CanvasResource from "../utils/canvasResourve";
 import ImageResource from "../utils/imageResource";
 import GL from "./GL";
 
@@ -48,7 +49,8 @@ export default class Texture
 
     constructor(spec: Readonly<TextureSpec>);
     constructor(res: Readonly<ImageResource>);
-    constructor(source: Readonly<TextureSpec | ImageResource>)
+    constructor(res: Readonly<CanvasResource>);
+    constructor(source: Readonly<TextureSpec | ImageResource | CanvasResource>)
     {
         const gl = GL.get();
 
@@ -56,7 +58,7 @@ export default class Texture
 
         gl.bindTexture(gl.TEXTURE_2D, this._id);
 
-        if (source instanceof ImageResource)
+        if (source instanceof ImageResource || source instanceof CanvasResource)
         {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);

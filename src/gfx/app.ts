@@ -24,7 +24,6 @@ import Framebuffer from "./gl/framebuffer";
 
 
 
-
 export default class App2D
 {
     private _canvas: HTMLCanvasElement;

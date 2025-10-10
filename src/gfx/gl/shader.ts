@@ -6,29 +6,27 @@ import GL from "./GL";
 export default class Shader
 {
     private _programId: WebGLProgram | null;
-    private _vertId: WebGLShader | null;
-    private _fragId: WebGLShader | null;
 
 
     constructor(vertRes: Readonly<TextResource>, fragRes: Readonly<TextResource>)
     {
         const gl = GL.get();
 
-        this._vertId = gl.createShader(gl.VERTEX_SHADER);
-        this._fragId = gl.createShader(gl.FRAGMENT_SHADER);
+        const vertId = gl.createShader(gl.VERTEX_SHADER);
+        const fragId = gl.createShader(gl.FRAGMENT_SHADER);
 
-        if (!this._vertId || !this._fragId)
+        if (!vertId || !fragId)
             throw new Error("Could not create shader");
 
-        gl.shaderSource(this._vertId, vertRes.text);
-        gl.shaderSource(this._fragId, fragRes.text);
+        gl.shaderSource(vertId, vertRes.text);
+        gl.shaderSource(fragId, fragRes.text);
 
-        gl.compileShader(this._vertId);
-        const vertLog = gl.getShaderInfoLog(this._vertId);
+        gl.compileShader(vertId);
+        const vertLog = gl.getShaderInfoLog(vertId);
         if (vertLog) console.error(vertLog);
         
-        gl.compileShader(this._fragId);
-        const fragLog = gl.getShaderInfoLog(this._fragId);
+        gl.compileShader(fragId);
+        const fragLog = gl.getShaderInfoLog(fragId);
         if (fragLog) console.error(fragLog);
 
         if (vertLog || fragLog) throw new Error("Could not compile shaders");
@@ -36,8 +34,8 @@ export default class Shader
         this._programId = gl.createProgram();
         if (!this._programId) throw new Error("Could not create program");
 
-        gl.attachShader(this._programId, this._vertId);
-        gl.attachShader(this._programId, this._fragId);
+        gl.attachShader(this._programId, vertId);
+        gl.attachShader(this._programId, fragId);
         gl.linkProgram(this._programId);
 
         const progLog = gl.getProgramInfoLog(this._programId);
@@ -47,8 +45,8 @@ export default class Shader
             throw new Error(progLog);
         }
 
-        gl.deleteShader(this._vertId);
-        gl.deleteShader(this._fragId);
+        gl.deleteShader(vertId);
+        gl.deleteShader(fragId);
     }
 
     public delete(): void
