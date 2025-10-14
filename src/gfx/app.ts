@@ -12,15 +12,14 @@ import Shader       from "./gl/shader";
 import Quad         from "./gl/primitives/quad";
 
 import { ImageUtils } from "./utils";
-import ImageResource    from "./utils/imageResource";
-import Texture, { TextureFiltering, TextureMode, TextureWrapping }          from "./gl/texture";
+import ImageResource  from "./utils/imageResource";
+import Texture        from "./gl/texture";
 
 import Vert from "@/assets/shaders/vert.glsl";
 import Frag from "@/assets/shaders/frag.glsl"
 
 // @ts-ignore
 import Container from "@/assets/textures/container.jpg?uint8array";
-import Framebuffer from "./gl/framebuffer";
 
 
 
@@ -43,7 +42,7 @@ export default class App2D
             premultipliedAlpha          : true,
             preserveDrawingBuffer       : false,
             failIfMajorPerformanceCaveat: false
-        }
+        };
 
         canvas.width = width;
         canvas.height = height;
@@ -52,9 +51,7 @@ export default class App2D
         canvas.style.height = `${height}px`;
 
         const ctx = canvas.getContext("webgl2", attrs)!;
-        const gl = GL.get(ctx);
-
-        gl.viewport(0, 0, canvas.width, canvas.height);
+        GL.get(ctx);
     }
 
 
@@ -73,7 +70,7 @@ export default class App2D
     {
         const gl = GL.get();
         let requestId: number;
-        
+
 
         const vertRes = new TextResource(Vert);
         const fragRes = new TextResource(Frag);
@@ -83,7 +80,6 @@ export default class App2D
 
         const shader = new Shader(vertRes, fragRes);
         const texture = new Texture(texRes);
-        texture.bind(0);
 
         const left = -0.5;
         const top  = 0.5;
@@ -189,47 +185,40 @@ export default class App2D
             {
                 camera.moveTo(curPos.setX(curPos.x + delta));
             }
-            
+
             console.log(curPos.x, curPos.y);
         });
 
 
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
-        const cRadius = 0.5;
-        const cCenter = new Vector2(w / 2, h / 2);
-
-        // const drawTexture = new Texture({
-        //     width: width,
-        //     height: height,
-        //     sourceMode: TextureMode.RGBA,
-        //     storeMode: TextureMode.RGBA,
-        //     wrapS: TextureWrapping.ClampToEdge,
-        //     wrapT: TextureWrapping.ClampToEdge,
-        //     min: TextureFiltering.Linear,
-        //     mag: TextureFiltering.Nearest,
-        // });
-        //
-        // const framebuffer = new Framebuffer();
-        // framebuffer.attach(drawTexture, 0);
+        const cRadius = 0.2;
 
 
-        const draw = () =>
+        let prevTime = 0;
+        const draw = (time: number) =>
         {
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
             gl.clearColor(0.2, 0.3, 0.3, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT);
+
+            const x = (w / 3) * Math.cos(time / 100);
+            const y = (h / 3) * Math.sin(time / 100);
+            const cCenter = new Vector2(w / 2 + x, h / 2 + y);
 
             camera.setScale(this._scale);
             camera.update();
 
+            texture.bind(0);
             quad.draw(shader, camera);
             shader.setUniform2f("cCenter", cCenter);
             shader.setUniformFloat("cRadius", cRadius);
             shader.setUniform4f("color", color);
 
-
+            prevTime = time;
             requestId = requestAnimationFrame(draw);
         }
 
-        draw();
+        draw(0);
     }
 }

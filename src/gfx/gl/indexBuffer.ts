@@ -5,11 +5,12 @@ import GL from "./GL";
 export default class IndexBuffer
 {
     private _id: WebGLBuffer | null;
-    private _indices: Array<number>;
+    private _count: number;
 
-    constructor(indices: Array<number>)
+
+    constructor(indices: ReadonlyArray<number>)
     {
-        this._indices = indices;
+        this._count = indices.length;
 
         const gl = GL.get();
         this._id = gl.createBuffer();
@@ -17,7 +18,7 @@ export default class IndexBuffer
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._id);
         gl.bufferData(
             gl.ELEMENT_ARRAY_BUFFER,
-            new Uint32Array(this._indices),
+            new Uint32Array(indices),
             gl.STATIC_DRAW
         );
     }
@@ -42,7 +43,7 @@ export default class IndexBuffer
 
     public get count()
     {
-        return this._indices.length;
+        return this._count;
     }
 
 

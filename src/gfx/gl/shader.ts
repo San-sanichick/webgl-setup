@@ -16,23 +16,26 @@ export default class Shader
         const fragId = gl.createShader(gl.FRAGMENT_SHADER);
 
         if (!vertId || !fragId)
-            throw new Error("Could not create shader");
+            throw new Error("Could not create shaders");
 
         gl.shaderSource(vertId, vertRes.text);
         gl.shaderSource(fragId, fragRes.text);
 
         gl.compileShader(vertId);
         const vertLog = gl.getShaderInfoLog(vertId);
-        if (vertLog) console.error(vertLog);
-        
+
         gl.compileShader(fragId);
         const fragLog = gl.getShaderInfoLog(fragId);
-        if (fragLog) console.error(fragLog);
 
-        if (vertLog || fragLog) throw new Error("Could not compile shaders");
+        if (vertLog)
+            throw new Error("Could not compile shader: " + vertLog);
+
+        if (fragLog)
+            throw new Error("Could not compile shader: " + fragLog);
 
         this._programId = gl.createProgram();
-        if (!this._programId) throw new Error("Could not create program");
+        if (!this._programId)
+            throw new Error("Could not create program");
 
         gl.attachShader(this._programId, vertId);
         gl.attachShader(this._programId, fragId);
@@ -40,10 +43,7 @@ export default class Shader
 
         const progLog = gl.getProgramInfoLog(this._programId);
         if (progLog)
-        {
-            console.error(progLog);
             throw new Error(progLog);
-        }
 
         gl.deleteShader(vertId);
         gl.deleteShader(fragId);

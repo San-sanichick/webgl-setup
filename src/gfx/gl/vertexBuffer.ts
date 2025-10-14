@@ -105,8 +105,8 @@ export default class VertexBuffer
 {
     private _id: WebGLBuffer | null;
     private _layout: VertexBufferLayout | null = null;
-    
-    constructor(vertices: Array<number>)
+
+    constructor(vertices: ReadonlyArray<number>)
     {
         const gl = GL.get();
         this._id = gl.createBuffer();

@@ -27,15 +27,11 @@ export default class Quad
     constructor(left: number, top: number, width: number, height: number)
     {
         this._vertices = [
-            // pos                           // UV
-            left + width, top,          0.0, width, 0.0,
-            left + width, top - height, 0.0, width, height,
-            left,         top - height, 0.0, 0.0, height,
-            left,         top,          0.0, 0.0, 0.0,
-            // left + width, top,          0.0, 0.0, 0.0,
-            // left + width, top - height, 0.0, width, 0.0,
-            // left,         top - height, 0.0, width, height,
-            // left,         top,          0.0, 0.0, height,
+            // pos                             // UV
+            left + width, top,          0.0,   width, 0.0,
+            left + width, top - height, 0.0,   width, height,
+            left,         top - height, 0.0,   0.0, height,
+            left,         top,          0.0,   0.0, 0.0,
         ];
 
         this._vb = new VertexBuffer(this._vertices);
@@ -45,6 +41,7 @@ export default class Quad
             new VertexBufferElement("aPos", BufferType.Float3),
             new VertexBufferElement("aUV", BufferType.Float2),
         ]);
+
         this._vb.layout = layout;
 
         this._va = new VertexArray();

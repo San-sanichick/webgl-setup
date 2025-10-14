@@ -6,7 +6,7 @@
         watch,
         useTemplateRef
     } from 'vue';
-    
+
     import App2D from './gfx/app';
 
 

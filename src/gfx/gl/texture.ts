@@ -47,6 +47,7 @@ export default class Texture
 {
     private _id: WebGLTexture | null;
 
+
     constructor(spec: Readonly<TextureSpec>);
     constructor(res: Readonly<ImageResource>);
     constructor(res: Readonly<CanvasResource>);
@@ -74,7 +75,7 @@ export default class Texture
                 sourceMode = TextureMode.RGB;
                 storeMode  = TextureMode.RGB;
             }
-            
+
             gl.texImage2D(
                 gl.TEXTURE_2D,
                 0,
@@ -107,7 +108,7 @@ export default class Texture
                 0,
                 spec.storeMode,
                 gl.UNSIGNED_BYTE,
-                null
+                null,
             );
 
             gl.generateMipmap(gl.TEXTURE_2D);
