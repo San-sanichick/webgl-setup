@@ -1,6 +1,6 @@
 #version 300 es
-
 precision highp float;
+
 
 in vec2 UVCoord;
 
@@ -26,13 +26,14 @@ vec2 translate(vec2 pos, vec2 offset)
 
 void main()
 {
-    float dist = distance(cCenter, UVCoord);
-    if (dist < cRadius)
-    {
-        outColor = color;
-    }
-    else
-    {
-        outColor = texture(tex, UVCoord);
-    }
+    outColor = color;
+    // float dist = distance(cCenter, UVCoord);
+    // if (dist < cRadius)
+    // {
+    //     outColor = color;
+    // }
+    // else
+    // {
+    //     outColor = texture(tex, UVCoord);
+    // }
 }

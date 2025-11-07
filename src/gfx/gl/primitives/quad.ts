@@ -1,6 +1,12 @@
 import { Matrix4 } from "threejs-math";
 
-import VertexBuffer, { BufferType, VertexBufferElement, VertexBufferLayout } from "../vertexBuffer";
+import type { IDisposable } from "@/gfx/utils/types";
+
+import VertexBuffer, {
+    BufferType,
+    VertexBufferElement,
+    VertexBufferLayout
+} from "../vertexBuffer";
 
 import GL          from "../GL";
 import type Camera from "../camera/camera";
@@ -9,7 +15,7 @@ import IndexBuffer from "../indexBuffer";
 import VertexArray from "../vertexArray";
 
 
-export default class Quad
+export default class Quad implements IDisposable
 {
     private _vertices: Array<number>;
     private _indices: Array<number> = [
@@ -17,9 +23,7 @@ export default class Quad
         1, 2, 3
     ];
 
-    private _vb: VertexBuffer;
-    private _ib: IndexBuffer;
-    private _va: VertexArray;
+    private vao: VertexArray;
 
     private _model: Matrix4 = new Matrix4();
 
@@ -34,28 +38,32 @@ export default class Quad
             left,         top,          0.0,   0.0, 0.0,
         ];
 
-        this._vb = new VertexBuffer(this._vertices);
-        this._ib = new IndexBuffer(this._indices);
+        const vb = new VertexBuffer(this._vertices);
+        const ib = new IndexBuffer(this._indices);
 
         const layout = new VertexBufferLayout([
             new VertexBufferElement("aPos", BufferType.Float3),
             new VertexBufferElement("aUV", BufferType.Float2),
         ]);
 
-        this._vb.layout = layout;
+        vb.layout = layout;
 
-        this._va = new VertexArray();
-        this._va.addVertexBuffer(this._vb);
-        this._va.setIndexBuffer(this._ib);
+        this.vao = new VertexArray();
+        this.vao.addVertexBuffer(vb);
+        this.vao.setIndexBuffer(ib);
 
         this._model.identity();
+    }
+
+    public delete(): void
+    {
+        this.vao.delete();
     }
 
 
     public draw(shader: Readonly<Shader>, camera: Readonly<Camera>): void
     {
-        shader.bind();
-        this._va.bind();
+        this.vao.bind();
 
         shader.setUniformMat4("view", camera.view());
         shader.setUniformMat4("projection", camera.projection());
@@ -65,9 +73,11 @@ export default class Quad
         const gl = GL.get();
         gl.drawElements(
             gl.TRIANGLES,
-            this._va.getIndexBuffer()!.count,
+            this.vao.getIndexBuffer()!.count,
             gl.UNSIGNED_INT,
             0
         );
+
+        this.vao.unbind();
     }
 }

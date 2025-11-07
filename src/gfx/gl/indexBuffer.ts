@@ -1,8 +1,9 @@
+import type { IDisposable } from "../utils/types";
 import GL from "./GL";
 
 
 
-export default class IndexBuffer
+export default class IndexBuffer implements IDisposable
 {
     private _id: WebGLBuffer | null;
     private _count: number;

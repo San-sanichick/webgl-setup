@@ -1,3 +1,4 @@
+import type { IDisposable } from "../utils/types";
 import GL from "./GL";
 
 
@@ -101,7 +102,7 @@ export class VertexBufferLayout
 
 
 
-export default class VertexBuffer
+export default class VertexBuffer implements IDisposable
 {
     private _id: WebGLBuffer | null;
     private _layout: VertexBufferLayout | null = null;

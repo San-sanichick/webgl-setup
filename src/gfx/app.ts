@@ -18,8 +18,13 @@ import Texture        from "./gl/texture";
 import Vert from "@/assets/shaders/vert.glsl";
 import Frag from "@/assets/shaders/frag.glsl"
 
+import PolyVert from "@/assets/shaders/vector/vert.glsl";
+import PolyFrag from "@/assets/shaders/vector/frag.glsl";
+
 // @ts-ignore
-import Container from "@/assets/textures/container.jpg?uint8array";
+// import Container from "@/assets/textures/container.jpg?uint8array";
+import { generateVectorGeometryFromData, VectorDataGenerator } from "./utils/vectorGeometryGenerator";
+import { Polygon } from "./gl/primitives/polygon";
 
 
 
@@ -72,14 +77,19 @@ export default class App2D
         let requestId: number;
 
 
-        const vertRes = new TextResource(Vert);
-        const fragRes = new TextResource(Frag);
+        const polyVertRes = new TextResource(PolyVert);
+        const polyFragRes = new TextResource(PolyFrag);
 
-        const data = await ImageUtils.getImageData(Container);
-        const texRes = new ImageResource(data, 3);
+        const quadVertRes = new TextResource(Vert);
+        const quadFragRes = new TextResource(Frag);
 
-        const shader = new Shader(vertRes, fragRes);
-        const texture = new Texture(texRes);
+        // const data = await ImageUtils.getImageData(Container);
+        // const texRes = new ImageResource(data, 3);
+
+        const shaderQuad = new Shader(quadVertRes, quadFragRes);
+        const shaderPoly = new Shader(polyVertRes, polyFragRes);
+
+        // const texture = new Texture(texRes);
 
         const left = -0.5;
         const top  = 0.5;
@@ -185,35 +195,73 @@ export default class App2D
             {
                 camera.moveTo(curPos.setX(curPos.x + delta));
             }
-
-            console.log(curPos.x, curPos.y);
         });
 
 
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
-        const cRadius = 0.2;
+        // const cRadius = 0.15;
 
+        const gen = new VectorDataGenerator();
+        gen
+            .moveTo(-0.5, -0.5)
+            // .lineTo(0.5, -0.5)
+            .cubicTo(0.5, -0.5, -0.2, -0.7, 0.2, -0.7)
+            .lineTo(0.5, 0.5)
+            .lineTo(-0.5, 0.5)
+            .close();
+
+
+        const rows = gen.buildGeometry();
+        const [vertices, len] = generateVectorGeometryFromData(rows);
+        const poly = new Polygon(vertices, len);
+        console.log(vertices);
 
         let prevTime = 0;
+
+        // gl.enable(gl.BLEND);
+        gl.enable(gl.STENCIL_TEST);
+
         const draw = (time: number) =>
         {
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
             gl.clearColor(0.2, 0.3, 0.3, 1.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-
-            const x = (w / 3) * Math.cos(time / 100);
-            const y = (h / 3) * Math.sin(time / 100);
-            const cCenter = new Vector2(w / 2 + x, h / 2 + y);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 
             camera.setScale(this._scale);
             camera.update();
 
-            texture.bind(0);
-            quad.draw(shader, camera);
-            shader.setUniform2f("cCenter", cCenter);
-            shader.setUniformFloat("cRadius", cRadius);
-            shader.setUniform4f("color", color);
+            gl.disable(gl.BLEND);
+            {
+                // draw stencil
+                // gl.colorMask(false, false, false, false);
+                // gl.stencilFuncSeparate(gl.FRONT, gl.ALWAYS, 0, 63);
+                // gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.INCR_WRAP, gl.INCR_WRAP);
+                // gl.stencilMaskSeparate(gl.FRONT, 63);
+                //
+                // gl.stencilFuncSeparate(gl.BACK, gl.ALWAYS, 0, 63);
+                // gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.DECR_WRAP, gl.DECR_WRAP);
+                // gl.stencilMaskSeparate(gl.BACK, 63);
+
+                shaderPoly.bind();
+                poly.draw(shaderPoly, camera);
+                shaderPoly.unbind();
+            }
+
+            gl.enable(gl.BLEND);
+            {
+                // draw cover
+                // gl.colorMask(true, true, true, true);
+                // gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+                // gl.stencilFuncSeparate(gl.FRONT_AND_BACK, gl.NOTEQUAL, 0, 63);
+                // gl.stencilOpSeparate(gl.FRONT_AND_BACK, 0, 0, 0);
+                // gl.stencilMaskSeparate(gl.FRONT_AND_BACK, 63);
+
+                // shaderQuad.bind();
+                // shaderQuad.setUniform4f("color", color);
+                // quad.draw(shaderQuad, camera);
+                // shaderQuad.unbind();
+            }
 
             prevTime = time;
             requestId = requestAnimationFrame(draw);

@@ -1,9 +1,10 @@
 import type { Matrix4, Vector2, Vector4 } from "threejs-math";
 import type TextResource from "../utils/textResource";
 import GL from "./GL";
+import type { IDisposable } from "../utils/types";
 
 
-export default class Shader
+export default class Shader implements IDisposable
 {
     private _programId: WebGLProgram | null;
 

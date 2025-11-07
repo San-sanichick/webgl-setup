@@ -1,9 +1,10 @@
+import type { IDisposable } from "../utils/types";
 import GL from "./GL";
 import type Texture from "./texture";
 
 
 
-export default class Framebuffer
+export default class Framebuffer implements IDisposable
 {
     private _id: WebGLFramebuffer | null;
 

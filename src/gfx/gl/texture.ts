@@ -1,5 +1,6 @@
 import CanvasResource from "../utils/canvasResourve";
 import ImageResource from "../utils/imageResource";
+import type { IDisposable } from "../utils/types";
 import GL from "./GL";
 
 // I love javascript, I hope the WebGL spec doesn't change these number, istg
@@ -43,7 +44,7 @@ export interface TextureSpec
 }
 
 
-export default class Texture
+export default class Texture implements IDisposable
 {
     private _id: WebGLTexture | null;
 
@@ -113,6 +114,10 @@ export default class Texture
 
             gl.generateMipmap(gl.TEXTURE_2D);
         }
+    }
+
+    public delete(): void {
+        GL.get().deleteTexture(this._id);
     }
 
 

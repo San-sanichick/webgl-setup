@@ -1,3 +1,4 @@
+import type { IDisposable } from "../utils/types";
 import GL                from "./GL";
 import type IndexBuffer  from "./indexBuffer";
 import type VertexBuffer from "./vertexBuffer";
@@ -21,7 +22,7 @@ function bufferTypeToGLType(type: BufferType)
 }
 
 
-export default class VertexArray
+export default class VertexArray implements IDisposable
 {
     private _id: WebGLVertexArrayObject | null;
     private _vertexBuffers: Array<VertexBuffer> = [];
@@ -38,6 +39,13 @@ export default class VertexArray
     public delete()
     {
         GL.get().deleteVertexArray(this._id);
+
+        for (let i = 0; i < this._vertexBuffers.length; i++)
+        {
+            this._vertexBuffers[i].delete();
+        }
+
+        this._indexBuffer?.delete();
     }
 
     public bind()
