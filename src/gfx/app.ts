@@ -231,9 +231,16 @@ export default class App2D
             camera.setScale(this._scale);
             camera.update();
 
+            // Why isn't this working?
+            // Is something missing?
+            // Must more blood be shed?
             gl.disable(gl.BLEND);
             {
                 // draw stencil
+
+                // NOTE: values taken directly from figma,
+                // they probably need to be different
+
                 // gl.colorMask(false, false, false, false);
                 // gl.stencilFuncSeparate(gl.FRONT, gl.ALWAYS, 0, 63);
                 // gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.INCR_WRAP, gl.INCR_WRAP);
@@ -251,6 +258,7 @@ export default class App2D
             gl.enable(gl.BLEND);
             {
                 // draw cover
+
                 // gl.colorMask(true, true, true, true);
                 // gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
                 // gl.stencilFuncSeparate(gl.FRONT_AND_BACK, gl.NOTEQUAL, 0, 63);

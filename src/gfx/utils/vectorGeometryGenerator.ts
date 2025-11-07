@@ -176,6 +176,11 @@ function multiply4x4By3x4(a: number[], b: number[]): number[]
     ];
 }
 
+const d1m = new Matrix3();
+const d2m = new Matrix3();
+const d3m = new Matrix3();
+const F = new Matrix4();
+
 
 export class VectorDataGenerator
 {
@@ -288,6 +293,8 @@ export class VectorDataGenerator
 
     public buildGeometry(): VectorGeometryRow[]
     {
+        // in the name of TRUE performance this could be
+        // a flat array, it's just not very convenient for now
         const rows: VectorGeometryRow[] = [];
 
         for (let i = 0; i < this.segments.length; i++)
@@ -312,6 +319,7 @@ export class VectorDataGenerator
                     // NOTE: I am going to inline fucking EVERYTHING,
                     // because performance
 
+                    // clean code bad
                     // --- get power basis
                     const B = [
                         segment.x1  , segment.y1  , 1,
@@ -340,34 +348,31 @@ export class VectorDataGenerator
                     // ---
 
                     // --- calc determinants
-                    const d1m = new Matrix3();
                     d1m.set(
                         x4, y4, w4,
                         x3, y3, w3,
                         x1, y1, w1,
                     );
 
-                    const d2m = new Matrix3();
                     d2m.set(
                         x4, y4, w4,
                         x2, y2, w2,
                         x1, y1, w1,
                     );
-                    const d3m = new Matrix3();
                     d3m.set(
                         x3, y3, w3,
                         x2, y2, w2,
                         x1, y1, w1,
                     );
+
                     const d1 = -d1m.determinant();
-                    const d2 = d2m.determinant();
+                    const d2 =  d2m.determinant();
                     const d3 = -d3m.determinant();
                     // ---
 
                     // get curve type
                     const curveType = getCubicType(d1, d2, d3);
 
-                    const F = new Matrix4();
 
                     // --- calculate F
                     switch(curveType)
@@ -488,6 +493,7 @@ export class VectorDataGenerator
                     // ---
 
                     // --- calculate MI3 * F and get k, l and m
+                    // FIXME: replace this with a non-allocating multiplication
                     const res = MI3.clone().multiply(F);
                     const k1 = res.elements[0];
                     const l1 = res.elements[1];
