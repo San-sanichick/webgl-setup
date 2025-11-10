@@ -275,7 +275,7 @@ export class VectorDataGenerator
         return this;
     }
 
-    public close(): void
+    public close(): this
     {
         const firstSegment = this.getLastVector()[0];
         this.getLastVector().push(
@@ -288,27 +288,36 @@ export class VectorDataGenerator
         );
 
         this.segments.push([]);
+
+        return this;
     }
 
 
-    public buildGeometry(): VectorGeometryRow[]
+    public buildGeometry(): VectorGeometryRow[][]
     {
         // in the name of TRUE performance this could be
         // a flat array, it's just not very convenient for now
-        const rows: VectorGeometryRow[] = [];
+        const rows: VectorGeometryRow[][] = [];
 
         for (let i = 0; i < this.segments.length; i++)
         {
             const vector = this.segments[i];
+            if (vector.length === 0) continue;
+
+            const row: VectorGeometryRow[] = [];
+
             for (let j = 0; j < vector.length; j++)
             {
                 const segment = vector[j];
 
                 if (segment.isLine())
                 {
-                    if (j === 0) rows.push([segment.x1, segment.y1, 1, 0, 0, 0]);
+                    if (j === 0)
+                    {
+                        row.push([segment.x1, segment.y1, 1, 0.5, 0.5, 0.5]);
+                    }
 
-                    rows.push([segment.x2, segment.y2, 1, 0, 0, 0]);
+                    row.push([segment.x2, segment.y2, 1, 0.5, 0.5, 0.5]);
 
                     continue;
                 }
@@ -511,16 +520,21 @@ export class VectorDataGenerator
                     const l4 = res.elements[13];
                     const m4 = res.elements[14];
 
-                    if (j === 0) rows.push([segment.x1,   segment.y1,   1, k1, l1, m1]);
+                    if (j === 0)
+                    {
+                        row.push([segment.x1, segment.y1, 1, k1, l1, m1]);
+                    }
 
-                    rows.push([segment.cx1!, segment.cy1!, 1, k2, l2, m2]);
-                    rows.push([segment.cx2!, segment.cy2!, 1, k3, l3, m3]);
-                    rows.push([segment.x2,   segment.y2,   1, k4, l4, m4]);
+                    row.push([segment.cx1!, segment.cy1!, 1, k2, l2, m2]);
+                    row.push([segment.cx2!, segment.cy2!, 1, k3, l3, m3]);
+                    row.push([segment.x2,   segment.y2,   1, k4, l4, m4]);
                     // ---
 
                     continue;
                 }
             }
+
+            rows.push(row);
         }
 
         return rows;
@@ -529,53 +543,66 @@ export class VectorDataGenerator
 
 
 
-export function generateVectorGeometryFromData(data: VectorGeometryRow[]): [vertices: number[], len: number]
+export function generateVectorGeometryFromData(data: VectorGeometryRow[][]): [vertices: number[], len: number]
 {
     const stack1 = new Stack<VectorGeometryRow>(data.length);
     const stack2 = new Stack<VectorGeometryRow>(data.length);
+    const vertices = new Array<number>();
 
-    stack1.takeOverFromArray(data.toReversed());
 
-    const top = stack1.pop()!;
-
-    // length - 2 because lmao
-    const vertices = new Array<number>((data.length - 2) * top.length * 3);
-
-    let i = 0;
-    while (!stack1.isEmpty())
+    // Why isn't this working?
+    // Is something missing?
+    // Must more blood be shed?
+    let j = 0;
+    // const top = data[0][0];
+    for (let i = 0; i < data.length; i++)
     {
-        stack2.push(stack1.pop()!);
+        stack1.takeOverFromArray(data[i].toReversed());
 
-        // HACK: this also fixes the problem that the first
-        // and the last point are present twice in the array
-        if (stack1.peek() === null) break;
+        const top = stack1.pop()!;
+        // if (i === 0) stack1.pop();
 
-        const p2 = stack1.peek()!;
-        const p3 = stack2.peek()!;
+        // length - 2 because lmao
+        // const vertices = new Array<number>((data.length - 2) * (top.length - 1) * 3);
 
-        vertices[i    ] = top[0];
-        vertices[i + 1] = top[1];
-        vertices[i + 2] = top[2];
-        vertices[i + 3] = top[3];
-        vertices[i + 4] = top[4];
-        vertices[i + 5] = top[5];
+        while (!stack1.isEmpty())
+        {
+            stack2.push(stack1.pop()!);
 
-        vertices[i + 6] = p2[0];
-        vertices[i + 7] = p2[1];
-        vertices[i + 8] = p2[2];
-        vertices[i + 9] = p2[3];
-        vertices[i + 10] = p2[4];
-        vertices[i + 11] = p2[5];
+            // HACK: this also fixes the problem that the first
+            // and the last point are present twice in the array
+            if (stack1.peek() === null) break;
 
-        vertices[i + 12] = p3[0];
-        vertices[i + 13] = p3[1];
-        vertices[i + 14] = p3[2];
-        vertices[i + 15] = p3[3];
-        vertices[i + 16] = p3[4];
-        vertices[i + 17] = p3[5];
+            const p2 = stack2.peek()!;
+            const p3 = stack1.peek()!;
 
-        i += top.length * 3;
+            if (p2[0] === top[0] && p2[1] === top[1]) continue;
+            if (p3[0] === top[0] && p3[1] === top[1]) continue;
+
+            vertices[j    ] = top[0];
+            vertices[j + 1] = top[1];
+            vertices[j + 2] = top[3];
+            vertices[j + 3] = top[4];
+            vertices[j + 4] = top[5];
+
+            vertices[j + 5] = p2[0];
+            vertices[j + 6] = p2[1];
+            vertices[j + 7] = p2[3];
+            vertices[j + 8] = p2[4];
+            vertices[j + 9] = p2[5];
+
+            vertices[j + 10] = p3[0];
+            vertices[j + 11] = p3[1];
+            vertices[j + 12] = p3[3];
+            vertices[j + 13] = p3[4];
+            vertices[j + 14] = p3[5];
+
+            j += (top.length - 1) * 3;
+        }
+
+        stack1.clear();
+        stack2.clear();
     }
 
-    return [vertices, vertices.length / top.length];
+    return [vertices, vertices.length / 5];
 }

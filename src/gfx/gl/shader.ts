@@ -1,7 +1,14 @@
-import type { Matrix4, Vector2, Vector4 } from "threejs-math";
-import type TextResource from "../utils/textResource";
 import GL from "./GL";
+
+import type TextResource from "../utils/textResource";
 import type { IDisposable } from "../utils/types";
+import type { Matrix3 } from "../utils/Matrix3";
+
+import type {
+    Matrix4,
+    Vector2,
+    Vector4
+} from "threejs-math";
 
 
 export default class Shader implements IDisposable
@@ -86,6 +93,13 @@ export default class Shader implements IDisposable
         const gl = GL.get();
         const loc = gl.getUniformLocation(this._programId!, name);
         gl.uniform4f(loc, value.x, value.y, value.z, value.w);
+    }
+
+    public setUniformMat3(name: string, value: Readonly<Matrix3>)
+    {
+        const gl = GL.get();
+        const loc = gl.getUniformLocation(this._programId!, name);
+        gl.uniformMatrix3fv(loc, false, value.toArray());
     }
 
     public setUniformMat4(name: string, value: Readonly<Matrix4>)

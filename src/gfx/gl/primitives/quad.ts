@@ -1,5 +1,3 @@
-import { Matrix4 } from "threejs-math";
-
 import type { IDisposable } from "@/gfx/utils/types";
 
 import VertexBuffer, {
@@ -11,6 +9,7 @@ import VertexBuffer, {
 import GL          from "../GL";
 import type Camera from "../camera/camera";
 import type Shader from "../shader";
+import { Matrix3 } from "@/gfx/utils/Matrix3";
 import IndexBuffer from "../indexBuffer";
 import VertexArray from "../vertexArray";
 
@@ -25,24 +24,24 @@ export default class Quad implements IDisposable
 
     private vao: VertexArray;
 
-    private _model: Matrix4 = new Matrix4();
+    private _model: Matrix3 = new Matrix3();
 
 
     constructor(left: number, top: number, width: number, height: number)
     {
         this._vertices = [
-            // pos                             // UV
-            left + width, top,          0.0,   width, 0.0,
-            left + width, top - height, 0.0,   width, height,
-            left,         top - height, 0.0,   0.0, height,
-            left,         top,          0.0,   0.0, 0.0,
+            // pos                        // UV
+            left + width, top,            width, 0.0,
+            left + width, top + height,   width, height,
+            left,         top + height,   0.0, height,
+            left,         top,            0.0, 0.0,
         ];
 
         const vb = new VertexBuffer(this._vertices);
         const ib = new IndexBuffer(this._indices);
 
         const layout = new VertexBufferLayout([
-            new VertexBufferElement("aPos", BufferType.Float3),
+            new VertexBufferElement("aPos", BufferType.Float2),
             new VertexBufferElement("aUV", BufferType.Float2),
         ]);
 
@@ -65,10 +64,10 @@ export default class Quad implements IDisposable
     {
         this.vao.bind();
 
-        shader.setUniformMat4("view", camera.view());
-        shader.setUniformMat4("projection", camera.projection());
+        shader.setUniformMat3("view", camera.view());
+        shader.setUniformMat3("projection", camera.projection());
 
-        shader.setUniformMat4("model", this._model);
+        shader.setUniformMat3("model", this._model);
 
         const gl = GL.get();
         gl.drawElements(

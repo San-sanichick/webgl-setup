@@ -1,4 +1,5 @@
-import { Matrix4, Vector3 } from "threejs-math";
+import { Matrix3 } from "@/gfx/utils/Matrix3";
+import { Vector2 } from "threejs-math";
 
 
 export default abstract class Camera
@@ -6,26 +7,21 @@ export default abstract class Camera
     protected _width: number;
     protected _height: number;
 
-    protected _projection: Matrix4 = new Matrix4();
-    protected _view: Matrix4 = new Matrix4();
-    protected _pos: Vector3;
-    protected _axis: Vector3 = new Vector3();
-    protected _angle: number = 0;
+    protected _projection: Matrix3 = new Matrix3();
+    protected _view: Matrix3 = new Matrix3();
 
-    protected _aspectRatio: number;
-    protected _nearPlane: number;
-    protected _farPlane: number;
+    protected _pos: Vector2;
 
 
-    constructor(width: number, height: number, nearPlane: number, farPlane: number)
+    constructor(width: number, height: number)
     {
         this._width = width;
         this._height = height;
-        this._aspectRatio = width / height;
-        this._nearPlane = nearPlane;
-        this._farPlane = farPlane;
 
-        this._pos = new Vector3(0.0, 0.0, -3.0);
+        this._pos = new Vector2(0.0, 0.0);
+
+        this._projection.identity();
+        this._view.identity();
     }
 
 
@@ -39,25 +35,15 @@ export default abstract class Camera
         return this._projection;
     }
 
-    public getCurPos(): Readonly<Vector3>
+    public getCurPos(): Readonly<Vector2>
     {
         return this._pos;
     }
 
-    public getCurAngle(): number
-    {
-        return this._angle;
-    }
 
-
-    public moveTo(pos: Readonly<Vector3>)
+    public moveTo(pos: Readonly<Vector2>)
     {
         this._pos = pos;
-    }
-
-    public rotateTo(angle: number)
-    {
-        this._angle = angle;
     }
 
 
@@ -65,5 +51,5 @@ export default abstract class Camera
     abstract getScale(): number;
 
 
-    abstract update(): void;
+    abstract update(width: number, height: number): void;
 }

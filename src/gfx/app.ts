@@ -2,7 +2,6 @@ import {
     Vector4,
     MathUtils as ThreeMathUtils,
     Vector2,
-    Vector3
 } from "threejs-math";
 
 import GL           from "./gl/GL";
@@ -43,7 +42,7 @@ export default class App2D
             powerPreference             : "default",
             alpha                       : false,
             depth                       : false,
-            stencil                     : false,
+            stencil                     : true,
             premultipliedAlpha          : true,
             preserveDrawingBuffer       : false,
             failIfMajorPerformanceCaveat: false
@@ -83,31 +82,18 @@ export default class App2D
         const quadVertRes = new TextResource(Vert);
         const quadFragRes = new TextResource(Frag);
 
-        // const data = await ImageUtils.getImageData(Container);
-        // const texRes = new ImageResource(data, 3);
-
         const shaderQuad = new Shader(quadVertRes, quadFragRes);
         const shaderPoly = new Shader(polyVertRes, polyFragRes);
 
-        // const texture = new Texture(texRes);
-
-        const left = -0.5;
-        const top  = 0.5;
-        const w = 1;
-        const h = 1;
-
-        const quad = new Quad(left, top, w, h);
 
         const width = this._canvas.width;
         const height = this._canvas.height;
+        this._canvas.style.width = `${width}px`;
+        this._canvas.style.height = `${height}px`;
 
-        const camera = new OrthoCamera(width, height, -100, 100);
+        const camera = new OrthoCamera(width, height);
 
         const delta = 1;
-        const angleDelta = ThreeMathUtils.degToRad(5);
-
-        // let oldX = width / 2;
-        // let oldY = height / 2;
 
         let drag = false;
 
@@ -138,7 +124,7 @@ export default class App2D
             const dx = (cx - oldX) / (width);
             const dy = (cy - oldY) / (height);
 
-            const newPos = oldPos.add(new Vector3(dx, dy, 0.0));
+            const newPos = oldPos.add(new Vector2(dx, dy));
 
             camera.moveTo(newPos);
 
@@ -161,7 +147,6 @@ export default class App2D
         document.addEventListener("keydown", (e: KeyboardEvent) =>
         {
             const curPos = camera.getCurPos();
-            const angle = camera.getCurAngle();
 
             if (e.code === "Escape")
             {
@@ -170,30 +155,21 @@ export default class App2D
                 return;
             }
 
-            if (e.code === "KeyQ")
-            {
-                camera.rotateTo(angle - angleDelta);
-            }
-            if (e.code === "KeyE")
-            {
-                camera.rotateTo(angle + angleDelta);
-            }
-
             if (e.code === "KeyW")
-            {
-                camera.moveTo(curPos.setY(curPos.y - delta));
-            }
-            if (e.code === "KeyS")
             {
                 camera.moveTo(curPos.setY(curPos.y + delta));
             }
+            if (e.code === "KeyS")
+            {
+                camera.moveTo(curPos.setY(curPos.y - delta));
+            }
             if (e.code === "KeyA")
             {
-                camera.moveTo(curPos.setX(curPos.x - delta));
+                camera.moveTo(curPos.setX(curPos.x + delta));
             }
             if (e.code === "KeyD")
             {
-                camera.moveTo(curPos.setX(curPos.x + delta));
+                camera.moveTo(curPos.setX(curPos.x - delta));
             }
         });
 
@@ -201,25 +177,63 @@ export default class App2D
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
         // const cRadius = 0.15;
 
+        const quad = new Quad(0, 0, 450, 450);
+
         const gen = new VectorDataGenerator();
+        // gen
+        //     .moveTo(0, 199)
+        //     .lineTo(293, 0)
+        //     .cubicTo(277, 376, 340.67, 117.33, 384, 330)
+        //     .cubicTo(0, 199, 170, 422, 39.33, 266)
+        //     .close();
+
         gen
-            .moveTo(-0.5, -0.5)
-            // .lineTo(0.5, -0.5)
-            .cubicTo(0.5, -0.5, -0.2, -0.7, 0.2, -0.7)
-            .lineTo(0.5, 0.5)
-            .lineTo(-0.5, 0.5)
+            .moveTo(20, 20)
+            .lineTo(220, 20)
+            .lineTo(220, 220)
+            .lineTo(20, 220)
+            .close()
+            .moveTo(40, 40)
+            .lineTo(180, 40)
+            .lineTo(180, 180)
+            .lineTo(40, 180)
             .close();
 
 
+        // gen
+        //     .moveTo(0, 199)
+        //     .lineTo(293, 0)
+        //     .lineTo(277, 376)
+        //     .lineTo(0, 199)
+        //     .close();
+
+        // gen
+        //     .moveTo(250, 250)
+        //     // .lineTo(0.5, -0.5)
+        //     .cubicTo(450, 250, 300, 200, 400, 200)
+        //     .lineTo(450, 450)
+        //     .lineTo(250, 450)
+        //     .close();
+
+
         const rows = gen.buildGeometry();
+        console.log(rows);
         const [vertices, len] = generateVectorGeometryFromData(rows);
+        // console.log(vertices);
+
+        for (let i = 0; i < vertices.length; i += 15)
+        {
+            console.log("p1", vertices[i], vertices[i + 1])
+            console.log("p2", vertices[i + 5], vertices[i + 6])
+            console.log("p3", vertices[i + 10], vertices[i + 11])
+            console.log("===")
+        }
+
+        // console.log(vertices)
         const poly = new Polygon(vertices, len);
-        console.log(vertices);
 
         let prevTime = 0;
 
-        // gl.enable(gl.BLEND);
-        gl.enable(gl.STENCIL_TEST);
 
         const draw = (time: number) =>
         {
@@ -229,26 +243,20 @@ export default class App2D
             gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 
             camera.setScale(this._scale);
-            camera.update();
+            camera.update(gl.canvas.width, gl.canvas.height);
 
-            // Why isn't this working?
-            // Is something missing?
-            // Must more blood be shed?
-            gl.disable(gl.BLEND);
+            gl.enable(gl.BLEND);
+            gl.enable(gl.STENCIL_TEST);
             {
                 // draw stencil
+                gl.colorMask(false, false, false, false);
+                gl.stencilFuncSeparate(gl.FRONT, gl.ALWAYS, 0, 1);
+                gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.INVERT, gl.INVERT);
+                gl.stencilMaskSeparate(gl.FRONT, 63);
 
-                // NOTE: values taken directly from figma,
-                // they probably need to be different
-
-                // gl.colorMask(false, false, false, false);
-                // gl.stencilFuncSeparate(gl.FRONT, gl.ALWAYS, 0, 63);
-                // gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.INCR_WRAP, gl.INCR_WRAP);
-                // gl.stencilMaskSeparate(gl.FRONT, 63);
-                //
-                // gl.stencilFuncSeparate(gl.BACK, gl.ALWAYS, 0, 63);
-                // gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.DECR_WRAP, gl.DECR_WRAP);
-                // gl.stencilMaskSeparate(gl.BACK, 63);
+                gl.stencilFuncSeparate(gl.BACK, gl.ALWAYS, 0, 1);
+                gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.INVERT, gl.INVERT);
+                gl.stencilMaskSeparate(gl.BACK, 63);
 
                 shaderPoly.bind();
                 poly.draw(shaderPoly, camera);
@@ -258,18 +266,22 @@ export default class App2D
             gl.enable(gl.BLEND);
             {
                 // draw cover
+                gl.colorMask(true, true, true, true);
+                gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+                gl.stencilFuncSeparate(gl.FRONT_AND_BACK, gl.NOTEQUAL, 0, 1);
+                gl.stencilOpSeparate(gl.FRONT_AND_BACK, 0, 0, 0);
+                gl.stencilMaskSeparate(gl.FRONT_AND_BACK, 63);
 
-                // gl.colorMask(true, true, true, true);
-                // gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-                // gl.stencilFuncSeparate(gl.FRONT_AND_BACK, gl.NOTEQUAL, 0, 63);
-                // gl.stencilOpSeparate(gl.FRONT_AND_BACK, 0, 0, 0);
-                // gl.stencilMaskSeparate(gl.FRONT_AND_BACK, 63);
-
-                // shaderQuad.bind();
-                // shaderQuad.setUniform4f("color", color);
-                // quad.draw(shaderQuad, camera);
-                // shaderQuad.unbind();
+                shaderQuad.bind();
+                shaderQuad.setUniform4f("color", color);
+                quad.draw(shaderQuad, camera);
+                shaderQuad.unbind();
             }
+
+            gl.disable(gl.STENCIL_TEST);
+            gl.stencilFuncSeparate(gl.FRONT_AND_BACK, gl.ALWAYS, 0, 0);
+            gl.stencilOpSeparate(gl.FRONT_AND_BACK, gl.KEEP, gl.KEEP, gl.KEEP);
+            gl.stencilMaskSeparate(gl.FRONT_AND_BACK, 255);
 
             prevTime = time;
             requestId = requestAnimationFrame(draw);
