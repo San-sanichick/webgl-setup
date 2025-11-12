@@ -113,7 +113,6 @@ enum CubicType
 
 function getCubicType(d1: number, d2: number, d3: number): CubicType
 {
-    console.log(d1, d2, d3);
     if (d1 !== 0)
     {
         const eq = (3 * d2 * d2 - 4 * d1 * d3);
@@ -436,7 +435,6 @@ export class VectorDataGenerator
 
                         // get curve type
                         const cubicType = getCubicType(d1, d2, d3);
-                        console.log(CubicType[cubicType]);
 
                         // this is to determine, if we are convex or concave
                         let kSign = 1;
@@ -464,6 +462,59 @@ export class VectorDataGenerator
                                 tm /= l2;
                                 sm /= l2;
 
+                                let ratio1 = tl / sl;
+                                let ratio2 = tm / sm;
+
+                                // HACK: HACK
+                                if (ratio1 >= EPSILON && (1 - ratio1) >= EPSILON && ratio1 >= 0 && ratio1 <= 1)
+                                {
+                                    const segments = this.subdivideCurve(
+                                        ratio1,
+                                        segment.x1, segment.y1,
+                                        segment.cx1!, segment.cy1!,
+                                        segment.cx2!, segment.cy2!,
+                                        segment.x2, segment.y2,
+                                    );
+
+                                    // segments[0].isSubdivided = true;
+                                    segments[1].isSubdivided = true;
+
+                                    vector.splice(j + 1, 0, ...segments);
+
+                                    const triangle = [
+                                        new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
+                                        new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
+                                    ];
+
+                                    this.segments.splice(i + 1, 0, triangle);
+
+                                    continue;
+                                }
+
+                                if (ratio2 >= EPSILON && (1 - ratio2) >= EPSILON && ratio2 >= 0 && ratio2 <= 1)
+                                {
+                                    const segments = this.subdivideCurve(
+                                        ratio2,
+                                        segment.x1, segment.y1,
+                                        segment.cx1!, segment.cy1!,
+                                        segment.cx2!, segment.cy2!,
+                                        segment.x2, segment.y2,
+                                    );
+
+                                    segments[0].isSubdivided = true;
+                                    // segments[1].isSubdivided = true;
+
+                                    vector.splice(j + 1, 0, ...segments);
+
+                                    const triangle = [
+                                        new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
+                                        new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
+                                    ];
+
+                                    this.segments.splice(i + 1, 0, triangle);
+                                    continue;
+                                }
+
                                 const m00 = tl * tm;
                                 const m01 = tl * tl * tl;
                                 const m02 = tm * tm * tm;
@@ -483,8 +534,16 @@ export class VectorDataGenerator
                                       0, m31, m32, 0,
                                 );
 
-                                kSign = Math.sign(d1);
-                                lSign = Math.sign(d1);
+                                if (segment.isSubdivided)
+                                {
+                                    kSign = 1;
+                                    lSign = 1;
+                                }
+                                else
+                                {
+                                    kSign = Math.sign(d1);
+                                    lSign = Math.sign(d1);
+                                }
 
                                 break;
                             }
@@ -508,7 +567,7 @@ export class VectorDataGenerator
                                 let ratio1 = td / sd;
                                 let ratio2 = te / se;
 
-                                if (ratio1 >= EPSILON && ratio1 >= 0 && ratio1 <= 1)
+                                if (ratio1 >= EPSILON && (1 - ratio1) >= EPSILON && ratio1 >= 0 && ratio1 <= 1)
                                 {
                                     const segments = this.subdivideCurve(
                                         ratio1,
@@ -534,7 +593,7 @@ export class VectorDataGenerator
                                     continue;
                                 }
 
-                                if (ratio2 >= EPSILON && ratio2 >= 0 && ratio2 <= 1)
+                                if (ratio2 >= EPSILON && (1 - ratio2) >= EPSILON && ratio2 >= 0 && ratio2 <= 1)
                                 {
                                     const segments = this.subdivideCurve(
                                         ratio2,

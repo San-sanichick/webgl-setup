@@ -235,9 +235,8 @@ export default class App2D
 
 
         const rows = gen.buildGeometry();
-        console.log(rows);
         const [vertices, len] = generateVectorGeometryFromData(rows);
-        // console.log(vertices);
+        const poly = new Polygon(vertices, len);
 
         // for (let i = 0; i < vertices.length; i += 15)
         // {
@@ -247,8 +246,6 @@ export default class App2D
         //     console.log("===")
         // }
 
-        // console.log(vertices)
-        const poly = new Polygon(vertices, len);
 
         let prevTime = 0;
 
