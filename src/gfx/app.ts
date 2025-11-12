@@ -182,11 +182,15 @@ export default class App2D
         const gen = new VectorDataGenerator();
         gen
             .moveTo(20, 20)
-            .cubicTo(220, 20, 40, 0, 200, 90)
+            .cubicTo(220, 20, 40, 0, 200, 40)
             .lineTo(220, 220)
             // .lineTo(20, 220)
             .cubicTo(20, 220, 200, 200, 40, 200)
-            .close();
+            .close()
+            // .moveTo(50, 0)
+            // .lineTo(100, 50)
+            // .lineTo(100, 100)
+            // .close();
 
         // gen
         //     .moveTo(0, 199)
@@ -234,9 +238,11 @@ export default class App2D
         //     .close();
 
 
+        const now = performance.now();
         const rows = gen.buildGeometry();
         const [vertices, len] = generateVectorGeometryFromData(rows);
         const poly = new Polygon(vertices, len);
+        console.log(performance.now() - now);
 
         // for (let i = 0; i < vertices.length; i += 15)
         // {

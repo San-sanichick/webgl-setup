@@ -189,6 +189,11 @@ const F = new Matrix4();
 
 const buffer = new Matrix4();
 
+function boundsCheck(val: number, start: number, end: number): boolean
+{
+    return val >= EPSILON && (end - val) >= EPSILON && val > start && val < end;
+}
+
 
 export class VectorDataGenerator
 {
@@ -344,6 +349,68 @@ export class VectorDataGenerator
     }
 
 
+    private subdivide(
+        segment: Segment,
+        segmentIndex: number,
+        vector: Segment[],
+        vectorIndex: number,
+        ratio1: number,
+        ratio2: number,
+    ): boolean
+    {
+        if (boundsCheck(ratio1, 0, 1))
+        {
+            const segments = this.subdivideCurve(
+                ratio1,
+                segment.x1, segment.y1,
+                segment.cx1!, segment.cy1!,
+                segment.cx2!, segment.cy2!,
+                segment.x2, segment.y2,
+            );
+
+            // segments[0].isSubdivided = true;
+            segments[1].isSubdivided = true;
+
+            vector.splice(segmentIndex + 1, 0, ...segments);
+
+            const triangle = [
+                new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
+                new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
+            ];
+
+            this.segments.splice(vectorIndex + 1, 0, triangle);
+
+            return true;
+        }
+
+        if (boundsCheck(ratio2, 0, 1))
+        {
+            const segments = this.subdivideCurve(
+                ratio2,
+                segment.x1, segment.y1,
+                segment.cx1!, segment.cy1!,
+                segment.cx2!, segment.cy2!,
+                segment.x2, segment.y2,
+            );
+
+            segments[0].isSubdivided = true;
+            // segments[1].isSubdivided = true;
+
+            vector.splice(segmentIndex + 1, 0, ...segments);
+
+            const triangle = [
+                new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
+                new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
+            ];
+
+            this.segments.splice(vectorIndex + 1, 0, triangle);
+            return true;
+        }
+
+        return false;
+    }
+
+
     public buildGeometry(): VectorGeometryRow[][]
     {
         // in the name of TRUE performance this could be
@@ -446,7 +513,6 @@ export class VectorDataGenerator
                             case CubicType.CUSP1:
                             case CubicType.SERPENTINE:
                             {
-                                // NOTE: this works incorrectly
                                 const sqrt13 = 1 / Math.sqrt(3);
                                 const sqrt = Math.sqrt(3 * d2 * d2 - 4 * d1 * d3);
 
@@ -465,55 +531,8 @@ export class VectorDataGenerator
                                 let ratio1 = tl / sl;
                                 let ratio2 = tm / sm;
 
-                                // HACK: HACK
-                                if (ratio1 >= EPSILON && (1 - ratio1) >= EPSILON && ratio1 >= 0 && ratio1 <= 1)
-                                {
-                                    const segments = this.subdivideCurve(
-                                        ratio1,
-                                        segment.x1, segment.y1,
-                                        segment.cx1!, segment.cy1!,
-                                        segment.cx2!, segment.cy2!,
-                                        segment.x2, segment.y2,
-                                    );
-
-                                    // segments[0].isSubdivided = true;
-                                    segments[1].isSubdivided = true;
-
-                                    vector.splice(j + 1, 0, ...segments);
-
-                                    const triangle = [
-                                        new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-                                        new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-                                    ];
-
-                                    this.segments.splice(i + 1, 0, triangle);
-
+                                if (this.subdivide(segment, j, vector, i, ratio1, ratio2))
                                     continue;
-                                }
-
-                                if (ratio2 >= EPSILON && (1 - ratio2) >= EPSILON && ratio2 >= 0 && ratio2 <= 1)
-                                {
-                                    const segments = this.subdivideCurve(
-                                        ratio2,
-                                        segment.x1, segment.y1,
-                                        segment.cx1!, segment.cy1!,
-                                        segment.cx2!, segment.cy2!,
-                                        segment.x2, segment.y2,
-                                    );
-
-                                    segments[0].isSubdivided = true;
-                                    // segments[1].isSubdivided = true;
-
-                                    vector.splice(j + 1, 0, ...segments);
-
-                                    const triangle = [
-                                        new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-                                        new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-                                    ];
-
-                                    this.segments.splice(i + 1, 0, triangle);
-                                    continue;
-                                }
 
                                 const m00 = tl * tm;
                                 const m01 = tl * tl * tl;
@@ -534,6 +553,7 @@ export class VectorDataGenerator
                                       0, m31, m32, 0,
                                 );
 
+                                // NOTE: this is just a shot in the dark
                                 if (segment.isSubdivided)
                                 {
                                     kSign = 1;
@@ -563,59 +583,11 @@ export class VectorDataGenerator
                                 te /= l2;
                                 se /= l2;
 
-                                // NOTE: check for double point and subdivide
                                 let ratio1 = td / sd;
                                 let ratio2 = te / se;
 
-                                if (ratio1 >= EPSILON && (1 - ratio1) >= EPSILON && ratio1 >= 0 && ratio1 <= 1)
-                                {
-                                    const segments = this.subdivideCurve(
-                                        ratio1,
-                                        segment.x1, segment.y1,
-                                        segment.cx1!, segment.cy1!,
-                                        segment.cx2!, segment.cy2!,
-                                        segment.x2, segment.y2,
-                                    );
-
-                                    // HACK: figure this out
-                                    segments[0].isSubdivided = true;
-                                    segments[1].isSubdivided = true;
-
-                                    vector.splice(j + 1, 0, ...segments);
-
-                                    const triangle = [
-                                        new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-                                        new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-                                    ];
-
-                                    this.segments.splice(i + 1, 0, triangle);
-
+                                if (this.subdivide(segment, j, vector, i, ratio1, ratio2))
                                     continue;
-                                }
-
-                                if (ratio2 >= EPSILON && (1 - ratio2) >= EPSILON && ratio2 >= 0 && ratio2 <= 1)
-                                {
-                                    const segments = this.subdivideCurve(
-                                        ratio2,
-                                        segment.x1, segment.y1,
-                                        segment.cx1!, segment.cy1!,
-                                        segment.cx2!, segment.cy2!,
-                                        segment.x2, segment.y2,
-                                    );
-
-                                    segments[0].isSubdivided = true;
-                                    segments[1].isSubdivided = true;
-
-                                    vector.splice(j + 1, 0, ...segments);
-
-                                    const triangle = [
-                                        new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-                                        new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-                                    ];
-
-                                    this.segments.splice(i + 1, 0, triangle);
-                                    continue;
-                                }
 
                                 const m00 = td * te;
                                 const m01 = td * td * te;
@@ -668,6 +640,11 @@ export class VectorDataGenerator
                                 tl /= l;
                                 sl /= l;
 
+                                const ratio = tl / sl;
+
+                                if (this.subdivide(segment, j, vector, i, ratio, -1))
+                                    continue;
+
                                 const m00 = tl;
                                 const m01 = tl * tl * tl;
                                 const m10 = -sl;
@@ -681,6 +658,12 @@ export class VectorDataGenerator
                                       0, m21, 0, 0,
                                       0, m31, 0, 0,
                                 );
+
+                                if (!segment.isSubdivided)
+                                {
+                                    kSign = -1;
+                                    lSign = -1;
+                                }
 
                                 break;
                             }
