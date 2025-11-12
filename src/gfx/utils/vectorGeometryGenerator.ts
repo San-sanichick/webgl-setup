@@ -1,11 +1,12 @@
-// import { Matrix3 } from "threejs-math";
-
 import { Matrix3 } from "./Matrix3";
 import { Matrix4 } from "./Matrix4";
 import { Stack } from "./stack";
 
 const EPSILON = 1e-5;
 const coeff = 2 / 3;
+const HESSIAN_COEFF = 32 / 3;
+
+type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
 
 class Segment
 {
@@ -20,14 +21,13 @@ class Segment
     public cx2?: number;
     public cy2?: number;
 
-    public isSubdivided = false;
+    public flip = false;
 
     constructor(
         x1: number, y1: number,
         x2: number, y2: number,
         cx1?: number, cy1?: number,
         cx2?: number, cy2?: number,
-
     )
     {
         this.x1 = x1;
@@ -82,7 +82,6 @@ class Segment
     }
 }
 
-type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
 
 const M3 = new Matrix4();
 M3.set(
@@ -157,30 +156,28 @@ function getCubicType(d1: number, d2: number, d3: number): CubicType
 // }
 
 
+const multBuffer = new Array<number>(12)
 function multiply4x4By3x4(a: number[], b: number[]): number[]
 {
-    const c0 = a[0] * b[0] + a[1] * b[3] + a[2] * b[6] + a[3] * b[9];
-    const c1 = a[0] * b[1] + a[1] * b[4] + a[2] * b[7] + a[3] * b[10];
-    const c2 = a[0] * b[2] + a[1] * b[5] + a[2] * b[8] + a[3] * b[11];
+    multBuffer[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6] + a[3] * b[9];
+    multBuffer[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7] + a[3] * b[10];
+    multBuffer[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8] + a[3] * b[11];
 
-    const c3 = a[4] * b[0] + a[5] * b[3] + a[6] * b[6] + a[7] * b[9];
-    const c4 = a[4] * b[1] + a[5] * b[4] + a[6] * b[7] + a[7] * b[10];
-    const c5 = a[4] * b[2] + a[5] * b[5] + a[6] * b[8] + a[7] * b[11];
+    multBuffer[3] = a[4] * b[0] + a[5] * b[3] + a[6] * b[6] + a[7] * b[9];
+    multBuffer[4] = a[4] * b[1] + a[5] * b[4] + a[6] * b[7] + a[7] * b[10];
+    multBuffer[5] = a[4] * b[2] + a[5] * b[5] + a[6] * b[8] + a[7] * b[11];
 
-    const c6 = a[8] * b[0] + a[9] * b[3] + a[10] * b[6] + a[11] * b[9];
-    const c7 = a[8] * b[1] + a[9] * b[4] + a[10] * b[7] + a[11] * b[10];
-    const c8 = a[8] * b[2] + a[9] * b[5] + a[10] * b[8] + a[11] * b[11];
+    multBuffer[6] = a[8] * b[0] + a[9] * b[3] + a[10] * b[6] + a[11] * b[9];
+    multBuffer[7] = a[8] * b[1] + a[9] * b[4] + a[10] * b[7] + a[11] * b[10];
+    multBuffer[8] = a[8] * b[2] + a[9] * b[5] + a[10] * b[8] + a[11] * b[11];
 
-    const c9  = a[12] * b[0] + a[13] * b[3] + a[14] * b[6] + a[15] * b[9];
-    const c10 = a[12] * b[1] + a[13] * b[4] + a[14] * b[7] + a[15] * b[10];
-    const c11 = a[12] * b[2] + a[13] * b[5] + a[14] * b[8] + a[15] * b[11];
-    return [
-        c0, c1, c2,
-        c3, c4, c5,
-        c6, c7, c8,
-        c9, c10, c11,
-    ];
+    multBuffer[9]  = a[12] * b[0] + a[13] * b[3] + a[14] * b[6] + a[15] * b[9];
+    multBuffer[10] = a[12] * b[1] + a[13] * b[4] + a[14] * b[7] + a[15] * b[10];
+    multBuffer[11] = a[12] * b[2] + a[13] * b[5] + a[14] * b[8] + a[15] * b[11];
+
+    return multBuffer;
 }
+
 
 const d1m = new Matrix3();
 const d2m = new Matrix3();
@@ -368,8 +365,7 @@ export class VectorDataGenerator
                 segment.x2, segment.y2,
             );
 
-            // segments[0].isSubdivided = true;
-            segments[1].isSubdivided = true;
+            segments[1].flip = true;
 
             vector.splice(segmentIndex + 1, 0, ...segments);
 
@@ -393,8 +389,7 @@ export class VectorDataGenerator
                 segment.x2, segment.y2,
             );
 
-            segments[0].isSubdivided = true;
-            // segments[1].isSubdivided = true;
+            segments[0].flip = true;
 
             vector.splice(segmentIndex + 1, 0, ...segments);
 
@@ -503,7 +498,7 @@ export class VectorDataGenerator
                         // get curve type
                         const cubicType = getCubicType(d1, d2, d3);
 
-                        // this is to determine, if we are convex or concave
+                        // this is to determine if we are convex or concave
                         let kSign = 1;
                         let lSign = 1;
 
@@ -553,8 +548,8 @@ export class VectorDataGenerator
                                       0, m31, m32, 0,
                                 );
 
-                                // NOTE: this is just a shot in the dark
-                                if (segment.isSubdivided)
+                                // HACK: this is just a shot in the dark
+                                if (segment.flip)
                                 {
                                     kSign = 1;
                                     lSign = 1;
@@ -614,11 +609,11 @@ export class VectorDataGenerator
                                 const h1 = this.computeHessian(td, sd, d1, d2, d3);
                                 const h2 = this.computeHessian(te, se, d1, d2, d3);
 
-                                const alpha1 = (32 / 3) * d33 * h1;
-                                const alpha2 = (32 / 3) * d33 * h2;
+                                const alpha1 = HESSIAN_COEFF * d33 * h1;
+                                const alpha2 = HESSIAN_COEFF * d33 * h2;
                                 const alpha = Math.max(alpha1, alpha2);
 
-                                if (segment.isSubdivided && (d1 * h1 > 0))
+                                if (segment.flip && (d1 * h1 > 0))
                                 {
                                     kSign = -1;
                                     lSign = -1;
@@ -633,7 +628,6 @@ export class VectorDataGenerator
                             }
                             case CubicType.CUSP2:
                             {
-                                // NOTE: this also works incorrectly
                                 let tl = d3;
                                 let sl = 3 * d2;
                                 const l = Math.sqrt(tl * tl + sl * sl);
@@ -659,10 +653,16 @@ export class VectorDataGenerator
                                       0, m31, 0, 0,
                                 );
 
-                                if (!segment.isSubdivided)
+                                // HACK: not certain this works correctly
+                                if (!segment.flip)
                                 {
-                                    kSign = -1;
-                                    lSign = -1;
+                                    kSign = -Math.sign(d2);
+                                    lSign = -Math.sign(d2);
+                                }
+                                else
+                                {
+                                    kSign = Math.sign(d2);
+                                    lSign = Math.sign(d2);
                                 }
 
                                 break;

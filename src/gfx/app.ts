@@ -182,10 +182,10 @@ export default class App2D
         const gen = new VectorDataGenerator();
         gen
             .moveTo(20, 20)
-            .cubicTo(220, 20, 40, 0, 200, 40)
+            .cubicTo(220, 20, 40, 0, 200, 90)
             .lineTo(220, 220)
-            // .lineTo(20, 220)
-            .cubicTo(20, 220, 200, 200, 40, 200)
+            .lineTo(20, 220)
+            // .cubicTo(20, 220, 200, 200, 40, 200)
             .close()
             // .moveTo(50, 0)
             // .lineTo(100, 50)
