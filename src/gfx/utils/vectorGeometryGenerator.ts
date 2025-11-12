@@ -1,6 +1,6 @@
 import { Matrix3 } from "./Matrix3";
 import { Matrix4 } from "./Matrix4";
-import { Stack } from "./stack";
+import { ReservableStack, Stack } from "./stack";
 
 const EPSILON = 1e-5;
 const coeff = 2 / 3;
@@ -110,50 +110,8 @@ enum CubicType
     LINE,
 }
 
-function getCubicType(d1: number, d2: number, d3: number): CubicType
-{
-    if (d1 !== 0)
-    {
-        const eq = (3 * d2 * d2 - 4 * d1 * d3);
-        if (eq > 0)
-            return CubicType.SERPENTINE;
-
-        if (eq < 0)
-            return CubicType.LOOP;
-
-        if (eq === 0)
-            return CubicType.CUSP1;
-    }
-
-    if (d1 === 0 && d2 !== 0)
-        return CubicType.CUSP2;
-
-    return CubicType.LINE;
-}
 
 
-// function multMatrix(
-//     m1Rows: number, m1Cols: number, m1: number[],
-//     m2Rows: number, m2Cols: number, m2: number[],
-// ): number[]
-// {
-//     const mulRes: number[] = new Array(m1Rows * m2Cols);
-//     for (let i = 0; i < mulRes.length; i++) mulRes[i] = 0;
-//
-//
-//     for (let i = 0; i < m1Rows; i++)
-//     {
-//         for (let j = 0; j < m2Cols; j++)
-//         {
-//             for (let k = 0; k < m1Cols; k++)
-//             {
-//                 mulRes[i * m2Cols + j] += (m1[i * m1Cols + k] * m2[k * m2Cols + j]);
-//             }
-//         }
-//     }
-//
-//     return mulRes;
-// }
 
 
 const multBuffer = new Array<number>(12)
@@ -304,8 +262,28 @@ export class VectorDataGenerator
 
 
 
+    private static getCubicType(d1: number, d2: number, d3: number): CubicType
+    {
+        if (d1 !== 0)
+        {
+            const eq = (3 * d2 * d2 - 4 * d1 * d3);
+            if (eq > 0)
+                return CubicType.SERPENTINE;
 
-    private subdivideCurve(
+            if (eq < 0)
+                return CubicType.LOOP;
+
+            if (eq === 0)
+                return CubicType.CUSP1;
+        }
+
+        if (d1 === 0 && d2 !== 0)
+            return CubicType.CUSP2;
+
+        return CubicType.LINE;
+    }
+
+    private static subdivideCurve(
         t: number,
         x1: number, y1: number,
         cx1: number, cy1: number,
@@ -340,7 +318,7 @@ export class VectorDataGenerator
     }
 
 
-    private computeHessian(t: number, s: number, d1: number, d2: number, d3: number): number
+    private static computeHessian(t: number, s: number, d1: number, d2: number, d3: number): number
     {
         return 36 * ((d3 * d1 - d2 * d2) * s * s + d1 * d2 * s * t - d1 * d1 * t * t);
     }
@@ -357,7 +335,7 @@ export class VectorDataGenerator
     {
         if (boundsCheck(ratio1, 0, 1))
         {
-            const segments = this.subdivideCurve(
+            const segments = VectorDataGenerator.subdivideCurve(
                 ratio1,
                 segment.x1, segment.y1,
                 segment.cx1!, segment.cy1!,
@@ -381,7 +359,7 @@ export class VectorDataGenerator
 
         if (boundsCheck(ratio2, 0, 1))
         {
-            const segments = this.subdivideCurve(
+            const segments = VectorDataGenerator.subdivideCurve(
                 ratio2,
                 segment.x1, segment.y1,
                 segment.cx1!, segment.cy1!,
@@ -408,8 +386,6 @@ export class VectorDataGenerator
 
     public buildGeometry(): VectorGeometryRow[][]
     {
-        // in the name of TRUE performance this could be
-        // a flat array, it's just not very convenient for now
         const rows: VectorGeometryRow[][] = [];
 
         for (let i = 0; i < this.segments.length; i++)
@@ -473,7 +449,7 @@ export class VectorDataGenerator
                         const w4 = out[11];
                         // ---
 
-                        // --- calc determinants
+                        // --- calculate determinants
                         d1m.set(
                             x4, y4, w4,
                             x3, y3, w3,
@@ -496,7 +472,7 @@ export class VectorDataGenerator
                         // ---
 
                         // get curve type
-                        const cubicType = getCubicType(d1, d2, d3);
+                        const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
 
                         // this is to determine if we are convex or concave
                         let kSign = 1;
@@ -505,6 +481,8 @@ export class VectorDataGenerator
                         // --- calculate F
                         switch(cubicType)
                         {
+                            // these two cases work out to be the same,
+                            // mathematically
                             case CubicType.CUSP1:
                             case CubicType.SERPENTINE:
                             {
@@ -532,12 +510,15 @@ export class VectorDataGenerator
                                 const m00 = tl * tm;
                                 const m01 = tl * tl * tl;
                                 const m02 = tm * tm * tm;
+
                                 const m10 = -sm * tl - sl * tm;
                                 const m11 = -3 * sl * tl * tl;
                                 const m12 = -3 * sm * tm * tm;
+
                                 const m20 = sl * sm;
                                 const m21 = 3 * sl * sl * tl;
                                 const m22 = 3 * sm * sm * tm;
+
                                 const m31 = -sl * sl * sl;
                                 const m32 = -sm * sm * sm;
 
@@ -587,12 +568,15 @@ export class VectorDataGenerator
                                 const m00 = td * te;
                                 const m01 = td * td * te;
                                 const m02 = td * te * te;
+
                                 const m10 = -se * td - sd * te;
                                 const m11 = -se * td * td - 2 * sd * te * td;
                                 const m12 = -sd * te * te - 2 * se * td * te;
+
                                 const m20 = sd * se;
                                 const m21 = te * sd * sd + 2 * se * td * sd;
                                 const m22 = td * se * se + 2 * sd * te * se;
+
                                 const m31 = -sd * sd * se;
                                 const m32 = -sd * se * se;
 
@@ -606,8 +590,8 @@ export class VectorDataGenerator
 
                                 // NOTE: I have no idea if this works correctly
                                 const d33 = d3 * d3 * d3;
-                                const h1 = this.computeHessian(td, sd, d1, d2, d3);
-                                const h2 = this.computeHessian(te, se, d1, d2, d3);
+                                const h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
+                                const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
 
                                 const alpha1 = HESSIAN_COEFF * d33 * h1;
                                 const alpha2 = HESSIAN_COEFF * d33 * h2;
@@ -700,15 +684,15 @@ export class VectorDataGenerator
                         const l4 = lSign * res.elements[13];
                         const m4 = res.elements[14];
 
-                        const row: VectorGeometryRow[] = [];
-
-                        row.push([segment.x1,   segment.y1,   k1, l1, m1]);
-                        row.push([segment.cx1!, segment.cy1!, k2, l2, m2]);
-                        row.push([segment.cx2!, segment.cy2!, k3, l3, m3]);
-                        row.push([segment.x2,   segment.y2,   k4, l4, m4]);
+                        rows.push(
+                            [
+                                [segment.x1,   segment.y1,   k1, l1, m1],
+                                [segment.cx1!, segment.cy1!, k2, l2, m2],
+                                [segment.cx2!, segment.cy2!, k3, l3, m3],
+                                [segment.x2,   segment.y2,   k4, l4, m4],
+                            ]
+                        );
                         // ---
-
-                        rows.push(row);
                         continue;
                     }
                 }
@@ -725,12 +709,12 @@ const COMPONENT_COUNT = 5;
 export function generateVectorGeometryFromData(data: VectorGeometryRow[][]): [vertices: number[], len: number]
 {
     const stack1 = new Stack<VectorGeometryRow>();
-    const stack2 = new Stack<VectorGeometryRow>();
+    const stack2 = new ReservableStack<VectorGeometryRow>(data.length);
     const vertices = new Array<number>();
 
     for (let i = 0; i < data.length; i++)
     {
-        stack1.takeOverFromArray(data[i].slice());
+        stack1.takeOverFromArray(data[i]);
 
         const top = stack1.pop()!;
 

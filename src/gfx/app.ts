@@ -184,13 +184,12 @@ export default class App2D
             .moveTo(20, 20)
             .cubicTo(220, 20, 40, 0, 200, 90)
             .lineTo(220, 220)
-            .lineTo(20, 220)
-            // .cubicTo(20, 220, 200, 200, 40, 200)
+            .cubicTo(20, 220, 200, 200, 40, 200)
             .close()
-            // .moveTo(50, 0)
-            // .lineTo(100, 50)
-            // .lineTo(100, 100)
-            // .close();
+            .moveTo(50, 80)
+            .lineTo(250, 80)
+            .lineTo(250, 300)
+            .close();
 
         // gen
         //     .moveTo(0, 199)

@@ -1,23 +1,78 @@
-export interface IStack<T>
+export interface IBaseStack<T>
 {
     maxSize: number;
-
     isEmpty(): boolean;
+    clear(): void;
+
+    push(val: T): void;
+    pop(): T | null;
+    peek(): T | null;
+
+}
+
+export interface IStack<T> extends IBaseStack<T>
+{
     setSize(size: number): void;
     takeOverFromArray(arr: T[]): void;
 
-    push(val: T): void;
     pushMany(vals: T[]): void;
 
     pushFromOtherStack(o: IStack<T>): void;
     pushAsCopyFromOtherStack(o: IStack<T>): void;
 
-    pop(): T | null;
     popUntil(callbackfn: (top: T) => boolean): boolean;
     popCount(count: number): T[];
+}
 
-    peek(): T | null;
-    clear(): void;
+
+
+export class ReservableStack<T> implements IBaseStack<T>
+{
+    private _stack: T[];
+    private topIndex = -1;
+
+    constructor(size: number)
+    {
+        this._stack = new Array<T>(size);
+    }
+
+
+    public get maxSize()
+    {
+        return this._stack.length;
+    }
+
+
+    public clear(): void
+    {
+        this.topIndex = 0;
+    }
+
+    public  peek(): T | null
+    {
+        if (this.topIndex === -1) return null;
+        return this._stack[this.topIndex];
+    }
+
+    public pop(): T | null
+    {
+        if (this.topIndex === -1) return null;
+        const top = this._stack[this.topIndex];
+        this.topIndex--;
+        return top;
+    }
+
+    public push(val: T): void
+    {
+        this.topIndex++;
+        this._stack[this.topIndex] = val;
+    }
+
+
+    public isEmpty(): boolean
+    {
+        return this.topIndex === -1;
+    }
 }
 
 
