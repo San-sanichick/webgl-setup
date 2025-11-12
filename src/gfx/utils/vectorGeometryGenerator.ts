@@ -82,7 +82,7 @@ class Segment
     }
 }
 
-type VectorGeometryRow = [x: number, y: number, w: 1, k: number, l: number, m: number];
+type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
 
 const M3 = new Matrix4();
 M3.set(
@@ -113,6 +113,7 @@ enum CubicType
 
 function getCubicType(d1: number, d2: number, d3: number): CubicType
 {
+    console.log(d1, d2, d3);
     if (d1 !== 0)
     {
         const eq = (3 * d2 * d2 - 4 * d1 * d3);
@@ -338,6 +339,12 @@ export class VectorDataGenerator
     }
 
 
+    private computeHessian(t: number, s: number, d1: number, d2: number, d3: number): number
+    {
+        return 36 * ((d3 * d1 - d2 * d2) * s * s + d1 * d2 * s * t - d1 * d1 * t * t);
+    }
+
+
     public buildGeometry(): VectorGeometryRow[][]
     {
         // in the name of TRUE performance this could be
@@ -358,8 +365,8 @@ export class VectorDataGenerator
 
                     // NOTE: Figma uses 0.5 for k, l and m for line segments.
                     // For some reason for us it doesn't work, so we use 0 instead
-                    row.push([segment.x1, segment.y1, 1, 0, 0, 0]);
-                    row.push([segment.x2, segment.y2, 1, 0, 0, 0]);
+                    row.push([segment.x1, segment.y1, 0, 0, 0]);
+                    row.push([segment.x2, segment.y2, 0, 0, 0]);
                 }
 
                 rows.push(row);
@@ -429,6 +436,7 @@ export class VectorDataGenerator
 
                         // get curve type
                         const cubicType = getCubicType(d1, d2, d3);
+                        console.log(CubicType[cubicType]);
 
                         // this is to determine, if we are convex or concave
                         let kSign = 1;
@@ -440,6 +448,7 @@ export class VectorDataGenerator
                             case CubicType.CUSP1:
                             case CubicType.SERPENTINE:
                             {
+                                // NOTE: this works incorrectly
                                 const sqrt13 = 1 / Math.sqrt(3);
                                 const sqrt = Math.sqrt(3 * d2 * d2 - 4 * d1 * d3);
 
@@ -510,7 +519,7 @@ export class VectorDataGenerator
                                     );
 
                                     // HACK: figure this out
-                                    // segments[0].isSubdivided = true;
+                                    segments[0].isSubdivided = true;
                                     segments[1].isSubdivided = true;
 
                                     vector.splice(j + 1, 0, ...segments);
@@ -536,7 +545,7 @@ export class VectorDataGenerator
                                     );
 
                                     segments[0].isSubdivided = true;
-                                    // segments[1].isSubdivided = true;
+                                    segments[1].isSubdivided = true;
 
                                     vector.splice(j + 1, 0, ...segments);
 
@@ -568,21 +577,32 @@ export class VectorDataGenerator
                                       0, m31, m32, 0,
                                 );
 
-                                if (segment.isSubdivided && d1 > 0)
+
+                                // NOTE: I have no idea if this works correctly
+                                const d33 = d3 * d3 * d3;
+                                const h1 = this.computeHessian(td, sd, d1, d2, d3);
+                                const h2 = this.computeHessian(te, se, d1, d2, d3);
+
+                                const alpha1 = (32 / 3) * d33 * h1;
+                                const alpha2 = (32 / 3) * d33 * h2;
+                                const alpha = Math.max(alpha1, alpha2);
+
+                                if (segment.isSubdivided && (d1 * h1 > 0))
                                 {
                                     kSign = -1;
                                     lSign = -1;
                                 }
                                 else
                                 {
-                                    kSign = Math.sign(d1);
-                                    lSign = Math.sign(d1);
+                                    kSign = Math.sign(alpha) || 1;
+                                    lSign = Math.sign(alpha) || 1;
                                 }
 
                                 break;
                             }
                             case CubicType.CUSP2:
                             {
+                                // NOTE: this also works incorrectly
                                 let tl = d3;
                                 let sl = 3 * d2;
                                 const l = Math.sqrt(tl * tl + sl * sl);
@@ -640,10 +660,10 @@ export class VectorDataGenerator
 
                         const row: VectorGeometryRow[] = [];
 
-                        row.push([segment.x1,   segment.y1,   1, k1, l1, m1]);
-                        row.push([segment.cx1!, segment.cy1!, 1, k2, l2, m2]);
-                        row.push([segment.cx2!, segment.cy2!, 1, k3, l3, m3]);
-                        row.push([segment.x2,   segment.y2,   1, k4, l4, m4]);
+                        row.push([segment.x1,   segment.y1,   k1, l1, m1]);
+                        row.push([segment.cx1!, segment.cy1!, k2, l2, m2]);
+                        row.push([segment.cx2!, segment.cy2!, k3, l3, m3]);
+                        row.push([segment.x2,   segment.y2,   k4, l4, m4]);
                         // ---
 
                         rows.push(row);
@@ -686,9 +706,9 @@ export function generateVectorGeometryFromData(data: VectorGeometryRow[][]): [ve
             if (p2[0] === p3[0] && p2[1] === p3[1]) continue;
 
             vertices.push(
-                top[0], top[1], top[3], top[4], top[5],
-                p2[0], p2[1], p2[3], p2[4], p2[5],
-                p3[0], p3[1], p3[3], p3[4], p3[5],
+                top[0], top[1], top[2], top[3], top[4],
+                p2[0], p2[1], p2[2], p2[3], p2[4],
+                p3[0], p3[1], p3[2], p3[3], p3[4],
             );
         }
     }
