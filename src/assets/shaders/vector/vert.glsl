@@ -8,13 +8,11 @@ uniform mat3 view;
 uniform mat3 projection;
 
 out vec3 o_klm;
-out vec2 o_pos;
 
 
 void main()
 {
     vec2 pos = (projection * view * model * vec3(a_pos, 1.0)).xy;
     gl_Position = vec4(pos, 0.0, 1.0);
-    o_pos = pos;
     o_klm = a_klm;
 }
