@@ -1,6 +1,7 @@
 export interface IBaseStack<T>
 {
     maxSize: number;
+    takeOverFromArray(arr: T[]): void;
     isEmpty(): boolean;
     clear(): void;
 
@@ -13,7 +14,6 @@ export interface IBaseStack<T>
 export interface IStack<T> extends IBaseStack<T>
 {
     setSize(size: number): void;
-    takeOverFromArray(arr: T[]): void;
 
     pushMany(vals: T[]): void;
 
@@ -40,6 +40,13 @@ export class ReservableStack<T> implements IBaseStack<T>
     public get maxSize()
     {
         return this._stack.length;
+    }
+
+
+    public takeOverFromArray(arr: T[]): void
+    {
+        this._stack = arr;
+        this.topIndex = arr.length - 1;
     }
 
 

@@ -1,12 +1,14 @@
 import { Matrix3 } from "./Matrix3";
 import { Matrix4 } from "./Matrix4";
-import { ReservableStack, Stack } from "./stack";
+import { mult4x4, multiply4x4By3x4 } from "./matrixUtils";
+import { ReservableStack } from "./stack";
 
 const EPSILON = 1e-5;
 const coeff = 2 / 3;
 const HESSIAN_COEFF = 32 / 3;
 
 type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
+
 
 class Segment
 {
@@ -22,6 +24,7 @@ class Segment
     public cy2?: number;
 
     public flip = false;
+
 
     constructor(
         x1: number, y1: number,
@@ -43,6 +46,12 @@ class Segment
         this.cy2 = cy2;
     }
 
+    public lengthSqr(): number
+    {
+        const dx = this.x2 - this.x1;
+        const dy = this.y2 - this.y1;
+        return dx * dx + dy * dy;
+    }
 
     public isLine(): boolean
     {
@@ -75,29 +84,28 @@ class Segment
         const dx2 = (this.cx1! - this.x2) * coeff;
         const dy2 = (this.cy1! - this.y2) * coeff;
 
-        this.cx1 = dx1;
-        this.cy1 = dy1;
-        this.cx2 = dx2;
-        this.cy2 = dy2;
+        this.cx1 = this.x1 + dx1;
+        this.cy1 = this.y1 + dy1;
+        this.cx2 = this.x2 + dx2;
+        this.cy2 = this.y2 + dy2;
     }
 }
 
 
-const M3 = new Matrix4();
-M3.set(
+const M3 = Object.freeze(new Matrix4([
      1,  0,  0, 0,
     -3,  3,  0, 0,
      3, -6,  3, 0,
     -1,  3, -3, 1,
-);
+]));
 
-const MI3 = new Matrix4();
-MI3.set(
+
+const MI3 = Object.freeze(new Matrix4([
     1,     0,     0, 0,
     1, 1 / 3,     0, 0,
     1, 2 / 3, 1 / 3, 0,
     1,     1,     1, 1,
-);
+]));
 
 
 
@@ -108,33 +116,10 @@ enum CubicType
     CUSP1,
     CUSP2,
     LINE,
+    QUADRATIC,
 }
 
 
-
-
-
-const multBuffer = new Array<number>(12)
-function multiply4x4By3x4(a: number[], b: number[]): number[]
-{
-    multBuffer[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6] + a[3] * b[9];
-    multBuffer[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7] + a[3] * b[10];
-    multBuffer[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8] + a[3] * b[11];
-
-    multBuffer[3] = a[4] * b[0] + a[5] * b[3] + a[6] * b[6] + a[7] * b[9];
-    multBuffer[4] = a[4] * b[1] + a[5] * b[4] + a[6] * b[7] + a[7] * b[10];
-    multBuffer[5] = a[4] * b[2] + a[5] * b[5] + a[6] * b[8] + a[7] * b[11];
-
-    multBuffer[6] = a[8] * b[0] + a[9] * b[3] + a[10] * b[6] + a[11] * b[9];
-    multBuffer[7] = a[8] * b[1] + a[9] * b[4] + a[10] * b[7] + a[11] * b[10];
-    multBuffer[8] = a[8] * b[2] + a[9] * b[5] + a[10] * b[8] + a[11] * b[11];
-
-    multBuffer[9]  = a[12] * b[0] + a[13] * b[3] + a[14] * b[6] + a[15] * b[9];
-    multBuffer[10] = a[12] * b[1] + a[13] * b[4] + a[14] * b[7] + a[15] * b[10];
-    multBuffer[11] = a[12] * b[2] + a[13] * b[5] + a[14] * b[8] + a[15] * b[11];
-
-    return multBuffer;
-}
 
 
 const d1m = new Matrix3();
@@ -142,7 +127,6 @@ const d2m = new Matrix3();
 const d3m = new Matrix3();
 const F = new Matrix4();
 
-const buffer = new Matrix4();
 
 function boundsCheck(val: number, start: number, end: number): boolean
 {
@@ -153,11 +137,14 @@ function boundsCheck(val: number, start: number, end: number): boolean
 export class VectorDataGenerator
 {
     private segments: Segment[][];
-    private lastPoint: [x: number, y: number] = [0, 0];
+    private lastPoint: [x: number, y: number];
+
+
 
     constructor()
     {
         this.segments = [[]];
+        this.lastPoint = [0, 0];
     }
 
     public reset(): void
@@ -167,27 +154,13 @@ export class VectorDataGenerator
     }
 
 
+
     private getLastVector(): Segment[]
     {
         return this.segments.at(-1)!;
     }
 
 
-    public lineTo(x: number, y: number): this
-    {
-        this.getLastVector().push(
-            new Segment(
-                this.lastPoint[0],
-                this.lastPoint[1],
-                x,
-                y,
-            )
-        );
-        this.lastPoint[0] = x;
-        this.lastPoint[1] = y;
-
-        return this;
-    }
 
     public moveTo(x: number, y: number): this
     {
@@ -201,6 +174,72 @@ export class VectorDataGenerator
 
         return this;
     }
+
+    public moveToRelative(dx: number, dy: number): this
+    {
+        if (this.getLastVector().length !== 0)
+        {
+            this.segments.push([]);
+        }
+
+        this.lastPoint[0] += dx;
+        this.lastPoint[1] += dy;
+
+        return this;
+    }
+
+
+
+    public lineTo(x: number, y: number): this
+    {
+        if (this.lastPoint[0] === x && this.lastPoint[1] === y)
+        {
+            return this;
+        }
+
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            x,
+            y,
+        );
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[0] = x;
+        this.lastPoint[1] = y;
+
+        return this;
+    }
+
+    public lineToRelative(dx: number, dy: number): this
+    {
+        const x2 = this.lastPoint[0] + dx;
+        const y2 = this.lastPoint[1] + dy;
+        if (
+            this.lastPoint[0] === x2 &&
+            this.lastPoint[1] === y2
+        )
+        {
+            return this;
+        }
+
+        this.getLastVector().push(
+            new Segment(
+                this.lastPoint[0],
+                this.lastPoint[1],
+                x2,
+                y2,
+            )
+        );
+
+        this.lastPoint[0] += dx;
+        this.lastPoint[1] += dy;
+
+        return this;
+    }
+
+
 
     public quadTo(x: number, y: number, cx: number, cy: number): this
     {
@@ -223,6 +262,29 @@ export class VectorDataGenerator
         return this;
     }
 
+    public quadToRelative(dx: number, dy: number, cdx: number, cdy: number): this
+    {
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            this.lastPoint[0] + dx,
+            this.lastPoint[1] + dy,
+            this.lastPoint[0] + cdx,
+            this.lastPoint[1] + cdy,
+        );
+
+        seg.quadraticToCubic();
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[0] += dx;
+        this.lastPoint[1] += dy;
+
+        return this;
+    }
+
+
+
     public cubicTo(x: number, y: number, cx1: number, cy1: number, cx2: number, cy2: number): this
     {
         const seg = new Segment(
@@ -242,6 +304,35 @@ export class VectorDataGenerator
         this.lastPoint[1] = y;
         return this;
     }
+
+    public cubicToRelative(
+        dx: number,
+        dy: number,
+        cdx1: number,
+        cdy1: number,
+        cdx2: number,
+        cdy2: number,
+    ): this
+    {
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            this.lastPoint[0] + dx,
+            this.lastPoint[0] + dy,
+            this.lastPoint[0] + cdx1,
+            this.lastPoint[0] + cdy1,
+            this.lastPoint[0] + cdx2,
+            this.lastPoint[0] + cdy2,
+        );
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[0] += dx;
+        this.lastPoint[1] += dy;
+        return this;
+    }
+
+
 
     public close(): this
     {
@@ -264,7 +355,7 @@ export class VectorDataGenerator
 
     private static getCubicType(d1: number, d2: number, d3: number): CubicType
     {
-        if (d1 !== 0)
+        if (Math.abs(d1) >= EPSILON)
         {
             const eq = (3 * d2 * d2 - 4 * d1 * d3);
             if (eq > 0)
@@ -277,8 +368,11 @@ export class VectorDataGenerator
                 return CubicType.CUSP1;
         }
 
-        if (d1 === 0 && d2 !== 0)
+        if (Math.abs(d1) <= EPSILON && Math.abs(d2) >= EPSILON)
             return CubicType.CUSP2;
+
+        if (Math.abs(d1) <= EPSILON && Math.abs(d2) <= EPSILON && Math.abs(d3) >= EPSILON)
+            return CubicType.QUADRATIC;
 
         return CubicType.LINE;
     }
@@ -324,11 +418,13 @@ export class VectorDataGenerator
     }
 
 
-    private subdivide(
+    private subdivideSegment(
         segment: Segment,
         segmentIndex: number,
+
         vector: Segment[],
         vectorIndex: number,
+
         ratio1: number,
         ratio2: number,
     ): boolean
@@ -473,6 +569,7 @@ export class VectorDataGenerator
 
                         // get curve type
                         const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
+                        console.log(CubicType[cubicType]);
 
                         // this is to determine if we are convex or concave
                         let kSign = 1;
@@ -504,7 +601,7 @@ export class VectorDataGenerator
                                 let ratio1 = tl / sl;
                                 let ratio2 = tm / sm;
 
-                                if (this.subdivide(segment, j, vector, i, ratio1, ratio2))
+                                if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
                                     continue;
 
                                 const m00 = tl * tm;
@@ -562,7 +659,7 @@ export class VectorDataGenerator
                                 let ratio1 = td / sd;
                                 let ratio2 = te / se;
 
-                                if (this.subdivide(segment, j, vector, i, ratio1, ratio2))
+                                if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
                                     continue;
 
                                 const m00 = td * te;
@@ -620,7 +717,7 @@ export class VectorDataGenerator
 
                                 const ratio = tl / sl;
 
-                                if (this.subdivide(segment, j, vector, i, ratio, -1))
+                                if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
                                     continue;
 
                                 const m00 = tl;
@@ -651,6 +748,17 @@ export class VectorDataGenerator
 
                                 break;
                             }
+                            case CubicType.QUADRATIC:
+                            {
+                                F.set(
+                                    0, 0, 0, 0,
+                                    0, 0, 0, 0,
+                                    0, 0, 0, 0,
+                                    0, 0, 0, 0,
+                                );
+
+                                break;
+                            }
                             case CubicType.LINE:
                             {
                                 F.set(
@@ -665,24 +773,64 @@ export class VectorDataGenerator
                         }
                         // ---
 
+                        let k1: number;
+                        let l1: number;
+                        let m1: number;
+
+                        let k2: number;
+                        let l2: number;
+                        let m2: number;
+
+                        let k3: number;
+                        let l3: number;
+                        let m3: number;
+
+                        let k4: number;
+                        let l4: number;
+                        let m4: number;
+
                         // --- calculate MI3 * F and get k, l and m
-                        const res = buffer.copy(F).multiply(MI3);
+                        if (cubicType !== CubicType.QUADRATIC)
+                        {
+                            const res = mult4x4(F, MI3);
 
-                        const k1 = kSign * res.elements[0];
-                        const l1 = lSign * res.elements[1];
-                        const m1 = res.elements[2];
+                            k1 = kSign * res[0];
+                            l1 = lSign * res[1];
+                            m1 = res[2];
 
-                        const k2 = kSign * res.elements[4];
-                        const l2 = lSign * res.elements[5];
-                        const m2 = res.elements[6];
+                            k2 = kSign * res[4];
+                            l2 = lSign * res[5];
+                            m2 = res[6];
 
-                        const k3 = kSign * res.elements[8];
-                        const l3 = lSign * res.elements[9];
-                        const m3 = res.elements[10];
+                            k3 = kSign * res[8];
+                            l3 = lSign * res[9];
+                            m3 = res[10];
 
-                        const k4 = kSign * res.elements[12];
-                        const l4 = lSign * res.elements[13];
-                        const m4 = res.elements[14];
+                            k4 = kSign * res[12];
+                            l4 = lSign * res[13];
+                            m4 = res[14];
+                        }
+                        else
+                        {
+                            // NOTE: the article actually gives completely different
+                            // value, but they don't work.
+                            // These are taken from Figma, but inverted
+                            k1 = 0;
+                            l1 = 0;
+                            m1 = 0;
+
+                            k2 = -1 / 3;
+                            l2 = 0;
+                            m2 = 1 / 3;
+
+                            k3 = -2 / 3;
+                            l3 = -1 / 3;
+                            m3 = 2 / 3;
+
+                            k4 = -1;
+                            l4 = -1;
+                            m4 = 1;
+                        }
 
                         rows.push(
                             [
@@ -693,6 +841,7 @@ export class VectorDataGenerator
                             ]
                         );
                         // ---
+
                         continue;
                     }
                 }
@@ -704,11 +853,17 @@ export class VectorDataGenerator
 }
 
 
+export function generateBoundingBoxFromData(data: VectorGeometryRow[][])
+{
+
+}
+
+
 const COMPONENT_COUNT = 5;
 
 export function generateVectorGeometryFromData(data: VectorGeometryRow[][]): [vertices: number[], len: number]
 {
-    const stack1 = new Stack<VectorGeometryRow>();
+    const stack1 = new ReservableStack<VectorGeometryRow>(0);
     const stack2 = new ReservableStack<VectorGeometryRow>(data.length);
     const vertices = new Array<number>();
 

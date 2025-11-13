@@ -1,46 +1,23 @@
-import { Vector2 } from "threejs-math";
 import type { Tuple } from "./types";
-
-
-const RADIAN_MULT = 180 / Math.PI;
-
 
 
 
 export class Matrix4
 {
-    public elements: Tuple<number, 16> = [
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1,
-    ];
+    public elements: Tuple<number, 16>;
 
-    
-    constructor(elements?: Tuple<number, 16>) 
+
+    constructor(elements?: Tuple<number, 16>)
     {
-        if (elements)
-        {
-            this.elements[0] = elements[0];
-            this.elements[1] = elements[1];
-            this.elements[2] = elements[2];
-            this.elements[3] = elements[3];
-            this.elements[4] = elements[4];
-            this.elements[5] = elements[5];
-            this.elements[6] = elements[6];
-            this.elements[7] = elements[7];
-            this.elements[8] = elements[8];
-            this.elements[9] = elements[9];
-            this.elements[10] = elements[10];
-            this.elements[11] = elements[11];
-            this.elements[12] = elements[12];
-            this.elements[13] = elements[13];
-            this.elements[14] = elements[14];
-            this.elements[15] = elements[15];
-        }
+        this.elements = elements ?? [
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
+        ];
     }
 
-    
+
     public set(
         n11: number,
         n12: number,
@@ -79,63 +56,9 @@ export class Matrix4
         return this;
     }
 
-    // public translate(x: number, y: number) 
-    // {
-    //     _m3.set(1, 0, 0, 0, 1, 0, x, y, 1);
-    //     return this.multiply(_m3);
-    // }
-    //
-    //
-    // public setPosition(x: number, y: number) 
-    // {
-    //     this.elements[6] = x;
-    //     this.elements[7] = y;
-    //     return this;
-    // }
 
 
-    // public rotate(angleInRadians: number) 
-    // {
-    //     const c = Math.cos(angleInRadians);
-    //     const s = Math.sin(angleInRadians);
-    //
-    //     _m3.set(c, -s, 0, s, c, 0, 0, 0, 1);
-    //     return this.multiply(_m3);
-    // }
-    //
-    //
-    // public setRotation(angleInRadians: number) 
-    // {
-    //     const c = Math.cos(angleInRadians);
-    //     const s = Math.sin(angleInRadians);
-    //
-    //     this.elements[0] = c;
-    //     this.elements[1] = -s;
-    //     this.elements[3] = s;
-    //     this.elements[4] = c;
-    //
-    //     return this;
-    // }
-
-
-
-    // public scale(x: number, y: number) 
-    // {
-    //     _m3.set(x, 0, 0, 0, y, 0, 0, 0, 1);
-    //     return this.multiply(_m3);
-    // }
-    //
-    //
-    // public setScale(x: number, y: number) 
-    // {
-    //     this.elements[0] = x;
-    //     this.elements[4] = y;
-    //
-    //     return this;
-    // }
-
-
-    public multiply(o: Matrix4) 
+    public multiply(o: Matrix4)
     {
         this.set(
             o.elements[0] * this.elements[0] +
@@ -223,7 +146,7 @@ export class Matrix4
     }
 
 
-    public identity() 
+    public identity()
     {
         this.elements[0] = 1;
         this.elements[1] = 0;
@@ -248,7 +171,7 @@ export class Matrix4
     }
 
 
-    public copy(m: Matrix4) 
+    public copy(m: Matrix4)
     {
         this.elements[0] = m.elements[0];
         this.elements[1] = m.elements[1];
@@ -274,51 +197,30 @@ export class Matrix4
     }
 
 
-    public clone(): Matrix4 
+    public clone(): Matrix4
     {
         return new Matrix4().copy(this);
     }
 
 
-    public toArray() 
+    public toArray()
     {
         return this.elements;
     }
 
 
-    public invert() 
-    {
-        // const a1  = this.elements[0];
-        // const b1  = this.elements[1];
-        // const c1  = this.elements[3];
-        // const d1  = this.elements[4];
-        // const tx1 = this.elements[6];
-        //
-        // const n = a1 * d1 - b1 * c1;
-        //
-        // this.elements[0] = d1 / n;
-        // this.elements[1] = -b1 / n;
-        // this.elements[3] = -c1 / n;
-        // this.elements[4] = a1 / n;
-        // this.elements[6] = (c1 * this.elements[7] - d1 * tx1) / n;
-        // this.elements[7] = -(a1 * this.elements[7] - b1 * tx1) / n;
-        //
-        // return this;
-    }
-
-
     /**
-     * 
-     * @param m 
-     * @returns 
+     *
+     * @param m
+     * @returns
      */
-    public compare(m: Matrix4): boolean 
+    public compare(m: Matrix4): boolean
     {
         if (this === m) return true;
 
-        for (let i = 0; i < this.elements.length; i++) 
+        for (let i = 0; i < this.elements.length; i++)
         {
-            if (this.elements[i] != m.elements[i]) return false;
+            if (this.elements[i] !== m.elements[i]) return false;
         }
 
         return true;
@@ -332,5 +234,3 @@ export class Matrix4
     }
 }
 
-
-const _m3 = new Matrix4();

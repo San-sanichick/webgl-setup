@@ -22,8 +22,10 @@ import PolyFrag from "@/assets/shaders/vector/frag.glsl";
 
 // @ts-ignore
 // import Container from "@/assets/textures/container.jpg?uint8array";
+import Font from "@/assets/fonts/font.ttf?uint8array";
 import { generateVectorGeometryFromData, VectorDataGenerator } from "./utils/vectorGeometryGenerator";
 import { Polygon } from "./gl/primitives/polygon";
+import { getFont } from "./utils/font";
 
 
 
@@ -38,8 +40,8 @@ export default class App2D
         this._canvas = canvas;
 
         const attrs: WebGLContextAttributes = {
-            antialias                   : true,
-            powerPreference             : "default",
+            antialias                   : false,
+            powerPreference             : "high-performance",
             alpha                       : false,
             depth                       : false,
             stencil                     : true,
@@ -84,6 +86,8 @@ export default class App2D
 
         const shaderQuad = new Shader(quadVertRes, quadFragRes);
         const shaderPoly = new Shader(polyVertRes, polyFragRes);
+
+        const font = getFont(Font);
 
 
         const width = this._canvas.width;
@@ -180,16 +184,44 @@ export default class App2D
         const quad = new Quad(0, 0, 450, 450);
 
         const gen = new VectorDataGenerator();
-        gen
-            .moveTo(20, 20)
-            .cubicTo(220, 20, 40, 0, 200, 90)
-            .lineTo(220, 220)
-            .cubicTo(20, 220, 200, 200, 40, 200)
-            .close()
-            .moveTo(50, 80)
-            .lineTo(250, 80)
-            .lineTo(250, 300)
-            .close();
+
+        const fontPath = font.getPath("hello world", 0, 0, 40);
+        const commands = fontPath.commands;
+
+        for (let i = 0; i < commands.length; i++)
+        {
+            const command = commands[i];
+
+            switch (command.type)
+            {
+                case "M":
+                    gen.moveTo(command.x, command.y);
+                    break;
+                case "L":
+                    gen.lineTo(command.x, command.y);
+                    break;
+                case "C":
+                    gen.cubicTo(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
+                    break;
+                case "Q":
+                    gen.quadTo(command.x, command.y, command.x1, command.y1);
+                    break;
+                case "Z":
+                    gen.close();
+                    break;
+            }
+        }
+
+        // gen
+        //     .moveTo(20, 20)
+        //     .cubicTo(220, 20, 40, 0, 200, 90)
+        //     .lineTo(220, 220)
+        //     .cubicTo(20, 220, 200, 200, 40, 200)
+        //     .close()
+        //     .moveTo(50, 80)
+        //     .lineTo(250, 80)
+        //     .lineTo(250, 300)
+        //     .close();
 
         // gen
         //     .moveTo(0, 199)
@@ -240,8 +272,10 @@ export default class App2D
         const now = performance.now();
         const rows = gen.buildGeometry();
         const [vertices, len] = generateVectorGeometryFromData(rows);
-        const poly = new Polygon(vertices, len);
         console.log(performance.now() - now);
+        
+        const poly = new Polygon(vertices, len);
+        poly.model().scale(1, -1).translate(0, -10);
 
         // for (let i = 0; i < vertices.length; i += 15)
         // {

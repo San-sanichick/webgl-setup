@@ -9,27 +9,19 @@ const RADIAN_MULT = 180 / Math.PI;
 
 export class Matrix3
 {
-    
-    public elements: Tuple<number, 9> = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+    public elements: Tuple<number, 9>;
 
-    
-    constructor(elements?: Tuple<number, 9>) 
+
+    constructor(elements?: Tuple<number, 9>)
     {
-        if (elements)
-        {
-            this.elements[0] = elements[0];
-            this.elements[1] = elements[1];
-            this.elements[2] = elements[2];
-            this.elements[3] = elements[3];
-            this.elements[4] = elements[4];
-            this.elements[5] = elements[5];
-            this.elements[6] = elements[6];
-            this.elements[7] = elements[7];
-            this.elements[8] = elements[8];
-        }
+        this.elements = elements ?? [
+            1, 0, 0,
+            0, 1, 0,
+            0, 0, 1,
+        ];
     }
 
-    
+
     public set(
         n11: number,
         n12: number,
@@ -54,14 +46,14 @@ export class Matrix3
         return this;
     }
 
-    public translate(x: number, y: number) 
+    public translate(x: number, y: number)
     {
         _m3.set(1, 0, 0, 0, 1, 0, x, y, 1);
         return this.multiply(_m3);
     }
 
 
-    public setPosition(x: number, y: number) 
+    public setPosition(x: number, y: number)
     {
         this.elements[6] = x;
         this.elements[7] = y;
@@ -69,7 +61,7 @@ export class Matrix3
     }
 
 
-    public rotate(angleInRadians: number) 
+    public rotate(angleInRadians: number)
     {
         const c = Math.cos(angleInRadians);
         const s = Math.sin(angleInRadians);
@@ -79,7 +71,7 @@ export class Matrix3
     }
 
 
-    public setRotation(angleInRadians: number) 
+    public setRotation(angleInRadians: number)
     {
         const c = Math.cos(angleInRadians);
         const s = Math.sin(angleInRadians);
@@ -94,14 +86,14 @@ export class Matrix3
 
 
 
-    public scale(x: number, y: number) 
+    public scale(x: number, y: number)
     {
         _m3.set(x, 0, 0, 0, y, 0, 0, 0, 1);
         return this.multiply(_m3);
     }
 
 
-    public setScale(x: number, y: number) 
+    public setScale(x: number, y: number)
     {
         this.elements[0] = x;
         this.elements[4] = y;
@@ -110,7 +102,7 @@ export class Matrix3
     }
 
 
-    public multiply(o: Matrix3) 
+    public multiply(o: Matrix3)
     {
         this.set(
             o.elements[0] * this.elements[0] +
@@ -154,7 +146,7 @@ export class Matrix3
     }
 
 
-    public identity() 
+    public identity()
     {
         this.elements[0] = 1;
         this.elements[1] = 0;
@@ -169,7 +161,7 @@ export class Matrix3
     }
 
 
-    public copy(m: Matrix3) 
+    public copy(m: Matrix3)
     {
         this.elements[0] = m.elements[0];
         this.elements[1] = m.elements[1];
@@ -185,19 +177,19 @@ export class Matrix3
     }
 
 
-    public clone(): Matrix3 
+    public clone(): Matrix3
     {
         return new Matrix3().copy(this);
     }
 
 
-    public toArray() 
+    public toArray()
     {
         return this.elements;
     }
 
 
-    public invert() 
+    public invert()
     {
         const a1  = this.elements[0];
         const b1  = this.elements[1];
@@ -238,15 +230,15 @@ export class Matrix3
     }
 
 
-    public getDegreeAngle() 
+    public getDegreeAngle()
     {
         return this.getRadAngle() * RADIAN_MULT;
     }
 
-    
+
     /**
      * @link https://stackoverflow.com/questions/45159314/decompose-2d-transformation-matrix/45160616#45160616
-     * @returns 
+     * @returns
      */
     public getSkew(): number
     {
@@ -255,9 +247,9 @@ export class Matrix3
         // | Ox Oy 1 |
 
         return Math.acos(
-            (this.elements[0] * this.elements[3] + this.elements[1] * this.elements[4]) / 
+            (this.elements[0] * this.elements[3] + this.elements[1] * this.elements[4]) /
             Math.sqrt(
-                (this.elements[0] * this.elements[0] + this.elements[1] * this.elements[1]) * 
+                (this.elements[0] * this.elements[0] + this.elements[1] * this.elements[1]) *
                 (this.elements[3] * this.elements[3] + this.elements[4] * this.elements[4])
             )
         ) - 0.5 * Math.PI;
@@ -265,21 +257,21 @@ export class Matrix3
 
 
     /**
-     * 
-     * @param skewY 
-     * @param angle 
-     * @returns 
+     *
+     * @param skewY
+     * @param angle
+     * @returns
      */
     public skew(skewY: number, angle: number)
     {
         skewY = Math.PI * 2 - skewY;
         angle = Math.PI * 2 - angle;
-        
+
         _m3.set(
             Math.cos(angle), Math.sin(angle), 0,
 
-            Math.tan(skewY) * Math.cos(angle) - Math.sin(angle), 
-            Math.tan(skewY) * Math.sin(angle) + Math.cos(angle), 
+            Math.tan(skewY) * Math.cos(angle) - Math.sin(angle),
+            Math.tan(skewY) * Math.sin(angle) + Math.cos(angle),
             0,
 
             0, 0, 1
@@ -294,7 +286,7 @@ export class Matrix3
     public skewY(skewY: number)
     {
         skewY = Math.PI * 2 - skewY;
-        
+
         _m3.set(
             1, 0, 0,
             Math.tan(skewY), 1, 0,
@@ -305,9 +297,9 @@ export class Matrix3
 
         return this;
     }
-    
 
-    public roundPosition() 
+
+    public roundPosition()
     {
         this.elements[6] = Math.round(this.elements[6]);
         this.elements[7] = Math.round(this.elements[7]);
@@ -317,15 +309,15 @@ export class Matrix3
 
 
     /**
-     * 
-     * @param m 
-     * @returns 
+     *
+     * @param m
+     * @returns
      */
-    public compare(m: Matrix3): boolean 
+    public compare(m: Matrix3): boolean
     {
         if (this === m) return true;
 
-        for (let i = 0; i < this.elements.length; i++) 
+        for (let i = 0; i < this.elements.length; i++)
         {
             if (this.elements[i] != m.elements[i]) return false;
         }
@@ -340,7 +332,7 @@ export class Matrix3
      * @param anchor
      * @returns
      */
-    public static makeRotationMatrix(angle: number, anchor: Vector2): Matrix3 
+    public static makeRotationMatrix(angle: number, anchor: Vector2): Matrix3
     {
         const matrix = new Matrix3();
         this.fillRotationMatrix(angle, anchor, matrix);
@@ -349,16 +341,16 @@ export class Matrix3
 
 
     /**
-     * 
-     * @param angle 
-     * @param anchor 
-     * @param matrix 
+     *
+     * @param angle
+     * @param anchor
+     * @param matrix
      */
     public static fillRotationMatrix(
         angle : number,
         anchor: Vector2,
         matrix: Matrix3
-    ): void 
+    ): void
     {
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
@@ -366,7 +358,7 @@ export class Matrix3
         let m = 0;
         let n = 0;
 
-        if (anchor.x != 0 && anchor.y != 0) 
+        if (anchor.x != 0 && anchor.y != 0)
         {
             m = -anchor.x * (cos - 1) + anchor.y * sin;
             n = -anchor.y * (cos - 1) - anchor.x * sin;
@@ -385,7 +377,7 @@ export class Matrix3
         matrix.elements[8] = 1;
     }
 
-    
+
     /**
      *
      * @param coeffX
@@ -399,7 +391,7 @@ export class Matrix3
         angle : number,
         anchor: Vector2,
         matrix: Matrix3
-    ): void 
+    ): void
     {
         const sDiff1 = coeffX - coeffY;
         const sDiff2 = coeffY - coeffX;
@@ -443,7 +435,7 @@ export class Matrix3
         coeffY: number,
         angle : number,
         anchor: Vector2
-    ): Matrix3 
+    ): Matrix3
     {
         const matrix = new Matrix3();
         this.fillScaleMatrix(coeffX, coeffY, angle, anchor, matrix);
@@ -452,11 +444,11 @@ export class Matrix3
 
 
     /**
-     * 
-     * @param scale 
-     * @param anchor 
-     * @param tempMatrix 
-     * @returns 
+     *
+     * @param scale
+     * @param anchor
+     * @param tempMatrix
+     * @returns
      */
     public static fillScaleMatrixByAnchor(
         scale     : Vector2,
@@ -470,21 +462,21 @@ export class Matrix3
 
         const ax = anchor.x;
         const ay = anchor.y;
-      
+
         const px = scale.x === 0 ? ax : ax * (1 - sx);
         const py = scale.y === 0 ? ay : ay * (1 - sy);
-      
+
         tempMatrix.set(sx, 0, 0, 0, sy, 0, px, py, 1);
-        
+
         return tempMatrix;
     }
-    
+
 
     /**
-     * 
-     * @param tempMatrix 
-     * @param size 
-     * @returns 
+     *
+     * @param tempMatrix
+     * @param size
+     * @returns
      */
     public static extractScaleFromMatrixAndApplyToSize(
         tempMatrix: Matrix3,
@@ -497,24 +489,24 @@ export class Matrix3
         const d = tempMatrix.elements[4];
         const e = tempMatrix.elements[6];
         const f = tempMatrix.elements[7];
-      
+
         // Применяем трансформацию к векторам ширины и высоты
         const widthVec  = [a * size.x, b * size.x];
         const heightVec = [c * size.y, d * size.y];
-      
+
         // Вычисляем реальные длины
         const realWidth = Math.hypot(...widthVec);
         const realHeight = Math.hypot(...heightVec);
-      
+
         // Масштаб по каждому направлению
         const scaleX = realWidth / size.x;
         const scaleY = realHeight / size.y;
-      
+
         // Применяем масштаб к размеру
         const scaledSize = new Vector2(size.x * scaleX, size.y * scaleY)
-      
+
         tempMatrix.set(a / scaleX, b / scaleX, 0, c / scaleY, d / scaleY, 0, e, f, 1);
-      
+
         return scaledSize;
     }
 

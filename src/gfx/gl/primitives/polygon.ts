@@ -41,6 +41,12 @@ export class Polygon implements IDisposable
     }
 
 
+    public model()
+    {
+        return this._model;
+    }
+
+
     public delete(): void
     {
         this.vao.delete();
