@@ -111,3 +111,20 @@ export function multiply4x4By3x4(a: number[], b: number[]): number[]
 
     return buffer3x4;
 }
+
+
+export function determinant3x3(
+    m0: number,
+    m1: number,
+    m2: number,
+    m3: number,
+    m4: number,
+    m5: number,
+    m6: number,
+    m7: number,
+    m8: number,
+): number
+{
+    return m0 * m4 * m8 + m1 * m5 * m6 + m2 * m3 * m7
+         - m2 * m4 * m6 - m1 * m3 * m8 - m0 * m5 * m7;
+}

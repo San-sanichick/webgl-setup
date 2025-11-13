@@ -179,15 +179,14 @@ export default class App2D
 
 
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
-        // const cRadius = 0.15;
 
-        const quad = new Quad(0, 0, 450, 450);
+        const quad = new Quad(0, 0, 1450, 450);
 
-        const gen = new VectorDataGenerator();
 
-        const fontPath = font.getPath("hello world", 0, 0, 40);
+        const fontPath = font.getPath("The quick brown fox jumps over the lazy dog", 0, 150, 20);
         const commands = fontPath.commands;
 
+        const gen = new VectorDataGenerator();
         for (let i = 0; i < commands.length; i++)
         {
             const command = commands[i];
@@ -275,7 +274,7 @@ export default class App2D
         console.log(performance.now() - now);
         
         const poly = new Polygon(vertices, len);
-        poly.model().scale(1, -1).translate(0, -10);
+        poly.model().translate(0, 30);
 
         // for (let i = 0; i < vertices.length; i += 15)
         // {

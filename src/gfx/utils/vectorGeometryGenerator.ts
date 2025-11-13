@@ -1,11 +1,15 @@
 import { Matrix3 } from "./Matrix3";
 import { Matrix4 } from "./Matrix4";
-import { mult4x4, multiply4x4By3x4 } from "./matrixUtils";
+import { determinant3x3, mult4x4, multiply4x4By3x4 } from "./matrixUtils";
 import { ReservableStack } from "./stack";
 
 const EPSILON = 1e-5;
-const coeff = 2 / 3;
+const CURVE_CONVERSION_COEFF = 2 / 3;
 const HESSIAN_COEFF = 32 / 3;
+
+const QUAD_K2 = 1 / 3;
+const QUAD_K3 = 2 / 3;
+const QUAD_L3 = 1 / 3;
 
 type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
 
@@ -78,11 +82,11 @@ class Segment
     {
         console.assert(this.isQuadratic(), "Segment is either not a curve or is cubic already");
 
-        const dx1 = (this.cx1! - this.x1) * coeff;
-        const dy1 = (this.cy1! - this.y1) * coeff;
+        const dx1 = (this.cx1! - this.x1) * CURVE_CONVERSION_COEFF;
+        const dy1 = (this.cy1! - this.y1) * CURVE_CONVERSION_COEFF;
 
-        const dx2 = (this.cx1! - this.x2) * coeff;
-        const dy2 = (this.cy1! - this.y2) * coeff;
+        const dx2 = (this.cx1! - this.x2) * CURVE_CONVERSION_COEFF;
+        const dy2 = (this.cy1! - this.y2) * CURVE_CONVERSION_COEFF;
 
         this.cx1 = this.x1 + dx1;
         this.cy1 = this.y1 + dy1;
@@ -120,11 +124,6 @@ enum CubicType
 }
 
 
-
-
-const d1m = new Matrix3();
-const d2m = new Matrix3();
-const d3m = new Matrix3();
 const F = new Matrix4();
 
 
@@ -480,6 +479,9 @@ export class VectorDataGenerator
     }
 
 
+    // TODO: Several optimizations to look into:
+    // 1) Use ObjectPool to reduce allocations (big one)
+    // 2) Reduce the amount of function calls
     public buildGeometry(): VectorGeometryRow[][]
     {
         const rows: VectorGeometryRow[][] = [];
@@ -510,7 +512,6 @@ export class VectorDataGenerator
                 {
                     const segment = vector[j];
                     if (segment.isLine()) continue;
-
 
                     if (segment.isCubic())
                     {
@@ -546,30 +547,25 @@ export class VectorDataGenerator
                         // ---
 
                         // --- calculate determinants
-                        d1m.set(
+                        const d1 = -determinant3x3(
                             x4, y4, w4,
                             x3, y3, w3,
                             x1, y1, w1,
                         );
-                        d2m.set(
+                        const d2 = determinant3x3(
                             x4, y4, w4,
                             x2, y2, w2,
                             x1, y1, w1,
                         );
-                        d3m.set(
+                        const d3 = -determinant3x3(
                             x3, y3, w3,
                             x2, y2, w2,
                             x1, y1, w1,
                         );
-
-                        const d1 = -d1m.determinant();
-                        const d2 =  d2m.determinant();
-                        const d3 = -d3m.determinant();
                         // ---
 
                         // get curve type
                         const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
-                        console.log(CubicType[cubicType]);
 
                         // this is to determine if we are convex or concave
                         let kSign = 1;
@@ -686,13 +682,7 @@ export class VectorDataGenerator
 
 
                                 // NOTE: I have no idea if this works correctly
-                                const d33 = d3 * d3 * d3;
                                 const h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
-                                const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
-
-                                const alpha1 = HESSIAN_COEFF * d33 * h1;
-                                const alpha2 = HESSIAN_COEFF * d33 * h2;
-                                const alpha = Math.max(alpha1, alpha2);
 
                                 if (segment.flip && (d1 * h1 > 0))
                                 {
@@ -701,6 +691,13 @@ export class VectorDataGenerator
                                 }
                                 else
                                 {
+                                    const d33 = d3 * d3 * d3;
+                                    const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
+
+                                    const alpha1 = HESSIAN_COEFF * d33 * h1;
+                                    const alpha2 = HESSIAN_COEFF * d33 * h2;
+                                    const alpha = Math.max(alpha1, alpha2);
+
                                     kSign = Math.sign(alpha) || 1;
                                     lSign = Math.sign(alpha) || 1;
                                 }
@@ -735,39 +732,23 @@ export class VectorDataGenerator
                                 );
 
                                 // HACK: not certain this works correctly
-                                if (!segment.flip)
-                                {
-                                    kSign = -Math.sign(d2);
-                                    lSign = -Math.sign(d2);
-                                }
-                                else
+                                if (segment.flip)
                                 {
                                     kSign = Math.sign(d2);
                                     lSign = Math.sign(d2);
+                                }
+                                else
+                                {
+                                    kSign = -Math.sign(d2);
+                                    lSign = -Math.sign(d2);
                                 }
 
                                 break;
                             }
                             case CubicType.QUADRATIC:
-                            {
-                                F.set(
-                                    0, 0, 0, 0,
-                                    0, 0, 0, 0,
-                                    0, 0, 0, 0,
-                                    0, 0, 0, 0,
-                                );
-
-                                break;
-                            }
                             case CubicType.LINE:
                             {
-                                F.set(
-                                    0, 0, 0, 0,
-                                    0, 0, 0, 0,
-                                    0, 0, 0, 0,
-                                    0, 0, 0, 0,
-                                );
-
+                                // these are special cases
                                 break;
                             }
                         }
@@ -792,6 +773,21 @@ export class VectorDataGenerator
                         // --- calculate MI3 * F and get k, l and m
                         if (cubicType !== CubicType.QUADRATIC)
                         {
+                            if (cubicType === CubicType.LINE)
+                            {
+                                // removes redundant triangulation
+                                // (probably a rare case)
+                                rows.push(
+                                    [
+                                        [segment.x1, segment.y1, 0, 0, 0],
+                                        [segment.x2, segment.y2, 0, 0, 0],
+                                    ]
+                                );
+
+                                continue;
+                            }
+
+                            // TODO: optimize for redundant multiplications
                             const res = mult4x4(F, MI3);
 
                             k1 = kSign * res[0];
@@ -812,20 +808,21 @@ export class VectorDataGenerator
                         }
                         else
                         {
-                            // NOTE: the article actually gives completely different
-                            // value, but they don't work.
+                            // NOTE: the article actually gives completely
+                            // different values, but they don't work.
                             // These are taken from Figma, but inverted
+
                             k1 = 0;
                             l1 = 0;
                             m1 = 0;
 
-                            k2 = -1 / 3;
+                            k2 = -QUAD_K2;
                             l2 = 0;
-                            m2 = 1 / 3;
+                            m2 = QUAD_K2;
 
-                            k3 = -2 / 3;
-                            l3 = -1 / 3;
-                            m3 = 2 / 3;
+                            k3 = -QUAD_K3;
+                            l3 = -QUAD_L3;
+                            m3 = QUAD_K3;
 
                             k4 = -1;
                             l4 = -1;
