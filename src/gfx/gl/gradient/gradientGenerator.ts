@@ -86,15 +86,34 @@ export class GradientGenerator implements IDisposable
     public generateGradient(texture1d: Texture, stops: GradientStop[]): void
     {
         this.fb.attach(texture1d, 0);
+        const _stops = stops.slice();
+        const first = _stops[0];
+        const last = _stops[_stops.length - 1];
 
-        const tex1dVertices = new Array<number>(stops.length * 18);
+        if (_stops[0].position !== 0)
+        {
+            _stops.unshift({
+                position: 0,
+                color: first.color,
+            });
+        }
+
+        if (_stops[_stops.length - 1].position !== 1)
+        {
+            _stops.push({
+                position: 1,
+                color: last.color,
+            })
+        }
+
+        const tex1dVertices = new Array<number>(_stops.length * 18);
 
         let j = 0;
 
-        for (let i = 0; i < stops.length - 1; i++)
+        for (let i = 0; i < _stops.length - 1; i++)
         {
-            const stop = stops[i];
-            const nStop = stops[i + 1];
+            const stop = _stops[i];
+            const nStop = _stops[i + 1];
             const color1 = stop.color;
             const color2 = nStop.color;
 
