@@ -5,6 +5,8 @@ export interface IBaseStack<T>
     isEmpty(): boolean;
     clear(): void;
 
+    setSize(size: number): void;
+
     push(val: T): void;
     pop(): T | null;
     peek(): T | null;
@@ -13,8 +15,6 @@ export interface IBaseStack<T>
 
 export interface IStack<T> extends IBaseStack<T>
 {
-    setSize(size: number): void;
-
     pushMany(vals: T[]): void;
 
     pushFromOtherStack(o: IStack<T>): void;
@@ -40,6 +40,11 @@ export class ReservableStack<T> implements IBaseStack<T>
     public get maxSize()
     {
         return this._stack.length;
+    }
+
+    public setSize(size: number): void
+    {
+        this._stack.length = size;
     }
 
 

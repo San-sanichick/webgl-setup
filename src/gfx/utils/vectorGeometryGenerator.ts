@@ -780,43 +780,7 @@ export class VectorDataGenerator
                         let m4: number;
 
                         // --- calculate MI3 * F and get k, l and m
-                        if (cubicType !== CubicType.QUADRATIC)
-                        {
-                            if (cubicType === CubicType.LINE)
-                            {
-                                // removes redundant triangulation
-                                // (probably a rare case)
-                                rows.push(
-                                    [
-                                        [segment.x1, segment.y1, 0, 0, 0],
-                                        [segment.x2, segment.y2, 0, 0, 0],
-                                    ]
-                                );
-
-                                continue;
-                            }
-
-                            // TODO: optimize for redundant multiplications
-                            // last column is 1, 0, 0, 0, we can remove that shit
-                            const res = mult4x4Fast(F.elements, MI3.elements);
-
-                            k1 = kSign * res[0];
-                            l1 = lSign * res[1];
-                            m1 = res[2];
-
-                            k2 = kSign * res[4];
-                            l2 = lSign * res[5];
-                            m2 = res[6];
-
-                            k3 = kSign * res[8];
-                            l3 = lSign * res[9];
-                            m3 = res[10];
-
-                            k4 = kSign * res[12];
-                            l4 = lSign * res[13];
-                            m4 = res[14];
-                        }
-                        else
+                        if (cubicType === CubicType.QUADRATIC)
                         {
                             // NOTE: the article actually gives completely
                             // different values, but they don't work.
@@ -837,6 +801,40 @@ export class VectorDataGenerator
                             k4 = -1;
                             l4 = -1;
                             m4 = 1;
+                        }
+                        else
+                        {
+                            if (cubicType === CubicType.LINE)
+                            {
+                                // removes redundant triangulation
+                                // (probably a rare case)
+                                rows.push(
+                                    [
+                                        [segment.x1, segment.y1, 0, 0, 0],
+                                        [segment.x2, segment.y2, 0, 0, 0],
+                                    ]
+                                );
+
+                                continue;
+                            }
+
+                            const res = mult4x4Fast(F.elements, MI3.elements);
+
+                            k1 = kSign * res[0];
+                            l1 = lSign * res[1];
+                            m1 = res[2];
+
+                            k2 = kSign * res[4];
+                            l2 = lSign * res[5];
+                            m2 = res[6];
+
+                            k3 = kSign * res[8];
+                            l3 = lSign * res[9];
+                            m3 = res[10];
+
+                            k4 = kSign * res[12];
+                            l4 = lSign * res[13];
+                            m4 = res[14];
                         }
 
                         rows.push(
@@ -860,23 +858,26 @@ export class VectorDataGenerator
 }
 
 
-export function generateBoundingBoxFromData(data: VectorGeometryRow[][])
-{
-    // TODO: implement this lmao
-}
-
 
 const COMPONENT_COUNT = 5;
 
 export function triangulateVectorGeometryFromData(data: VectorGeometryRow[][]): [vertices: number[], len: number]
 {
     const stack1 = new ReservableStack<VectorGeometryRow>(0);
-    const stack2 = new ReservableStack<VectorGeometryRow>(data.length);
+    const stack2 = new ReservableStack<VectorGeometryRow>(0);
     const vertices = new Array<number>();
 
     for (let i = 0; i < data.length; i++)
     {
-        stack1.takeOverFromArray(data[i]);
+        const _data = data[i];
+        stack1.takeOverFromArray(_data);
+
+        // let's hope the branch predictor fail results
+        // in less performance loss than a redundant allocation
+        if (stack2.maxSize < _data.length)
+            stack2.setSize(_data.length);
+
+        stack2.clear();
 
         const top = stack1.pop()!;
 
