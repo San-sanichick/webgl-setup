@@ -1,6 +1,5 @@
 import {
     Vector4,
-    MathUtils as ThreeMathUtils,
     Vector2,
 } from "threejs-math";
 
@@ -10,22 +9,26 @@ import TextResource from "./utils/textResource";
 import Shader       from "./gl/shader";
 import Quad         from "./gl/primitives/quad";
 
-import { ImageUtils } from "./utils";
-import ImageResource  from "./utils/imageResource";
-import Texture        from "./gl/texture";
 
-import Vert from "@/assets/shaders/vert.glsl";
-import Frag from "@/assets/shaders/frag.glsl"
+// import Vert from "@/assets/shaders/vert.glsl";
+// import Frag from "@/assets/shaders/frag.glsl"
+import Vert from "@/assets/shaders/gradient/2d/vert.glsl";
+import Frag from "@/assets/shaders/gradient/2d/frag.glsl";
 
 import PolyVert from "@/assets/shaders/vector/vert.glsl";
 import PolyFrag from "@/assets/shaders/vector/frag.glsl";
 
 // @ts-ignore
-// import Container from "@/assets/textures/container.jpg?uint8array";
 import Font from "@/assets/fonts/font.ttf?uint8array";
-import { generateVectorGeometryFromData, VectorDataGenerator } from "./utils/vectorGeometryGenerator";
 import { Polygon } from "./gl/primitives/polygon";
 import { getFont } from "./utils/font";
+
+import {
+    generateVectorGeometryFromData,
+    VectorDataGenerator
+} from "./utils/vectorGeometryGenerator";
+import { GradientGenerator, type GradientStop } from "./gl/gradient/gradientGenerator";
+import { GradientQuad } from "./gl/primitives/gradientQuad";
 
 
 
@@ -56,6 +59,8 @@ export default class App2D
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
 
+        // @ts-ignore
+        // const ctx = WebGLDebugUtils.makeDebugContext(canvas.getContext("webgl2"));
         const ctx = canvas.getContext("webgl2", attrs)!;
         GL.get(ctx);
     }
@@ -117,26 +122,6 @@ export default class App2D
 
         const maxScale = 19;
 
-        this._canvas.addEventListener("mousemove", (e: MouseEvent) =>
-        {
-            if (!drag) return;
-
-            const cx = e.clientX;
-            const cy = e.clientY;
-
-            const oldPos = camera.getCurPos();
-            const dx = (cx - oldX) / (width);
-            const dy = (cy - oldY) / (height);
-
-            const newPos = oldPos.add(new Vector2(dx, dy));
-
-            camera.moveTo(newPos);
-
-            oldX = cx;
-            oldY = cy;
-        });
-
-
         document.addEventListener("wheel", (e: WheelEvent) =>
         {
             const oldScale = this._scale;
@@ -180,36 +165,37 @@ export default class App2D
 
         const color = new Vector4(0.5, 1.0, 0.3, 1.0);
 
-        const quad = new Quad(0, 0, 1450, 450);
+        // const quad = new Quad(0, 0, 1450, 450);
+        const quad = new GradientQuad(0, 0, 400, 400);
 
-
-        const fontPath = font.getPath("The quick brown fox jumps over the lazy dog", 0, 150, 20);
-        const commands = fontPath.commands;
 
         const gen = new VectorDataGenerator();
-        for (let i = 0; i < commands.length; i++)
-        {
-            const command = commands[i];
-
-            switch (command.type)
-            {
-                case "M":
-                    gen.moveTo(command.x, command.y);
-                    break;
-                case "L":
-                    gen.lineTo(command.x, command.y);
-                    break;
-                case "C":
-                    gen.cubicTo(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
-                    break;
-                case "Q":
-                    gen.quadTo(command.x, command.y, command.x1, command.y1);
-                    break;
-                case "Z":
-                    gen.close();
-                    break;
-            }
-        }
+        // const fontPath = font.getPath("The quick brown fox jumps over the lazy dog", 0, 150, 20);
+        // const commands = fontPath.commands;
+        //
+        // for (let i = 0; i < commands.length; i++)
+        // {
+        //     const command = commands[i];
+        //
+        //     switch (command.type)
+        //     {
+        //         case "M":
+        //             gen.moveTo(command.x, command.y);
+        //             break;
+        //         case "L":
+        //             gen.lineTo(command.x, command.y);
+        //             break;
+        //         case "C":
+        //             gen.cubicTo(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
+        //             break;
+        //         case "Q":
+        //             gen.quadTo(command.x, command.y, command.x1, command.y1);
+        //             break;
+        //         case "Z":
+        //             gen.close();
+        //             break;
+        //     }
+        // }
 
         // gen
         //     .moveTo(20, 20)
@@ -222,50 +208,13 @@ export default class App2D
         //     .lineTo(250, 300)
         //     .close();
 
-        // gen
-        //     .moveTo(0, 199)
-        //     .lineTo(293, 0)
-        //     .cubicTo(277, 376, 340.67, 117.33, 384, 330)
-        //     .cubicTo(0, 199, 170, 422, 39.33, 266)
-        //     .close();
+        gen
+            .moveTo(0, 199)
+            .lineTo(293, 0)
+            .cubicTo(277, 376, 340.67, 117.33, 384, 330)
+            .cubicTo(0, 199, 170, 422, 39.33, 266)
+            .close();
 
-        // gen
-        //     .moveTo(20, 20)
-        //     .lineTo(220, 20)
-        //     .lineTo(220, 220)
-        //     .lineTo(20, 220)
-        //     .close()
-        //     .moveTo(40, 40)
-        //     .lineTo(100, 40)
-        //     .lineTo(100, 100)
-        //     .lineTo(40, 100)
-        //     .close()
-        //     .moveTo(110, 110)
-        //     .lineTo(200, 110)
-        //     .lineTo(250, 250)
-        //     .lineTo(110, 200)
-        //     .close();
-
-
-
-        // gen
-        //     .moveTo(0, 199)
-        //     .lineTo(293, 0)
-        //     .lineTo(277, 376)
-        //     .lineTo(0, 199)
-        //     .close();
-
-        // gen
-        //     .moveTo(0, 37.5)
-        //     .cubicTo(200, 37.5, 50, -12.5, 150, -12.5)
-        //     .lineTo(200, 237.5)
-        //     .lineTo(0, 237.5)
-        //     .close()
-        //     .moveTo(10, 10)
-        //     .lineTo(100, 10)
-        //     .lineTo(150, 150)
-        //     .lineTo(10, 150)
-        //     .close();
 
 
         const now = performance.now();
@@ -274,7 +223,7 @@ export default class App2D
         console.log(performance.now() - now);
         
         const poly = new Polygon(vertices, len);
-        poly.model().translate(0, 30);
+        // poly.model().scale(1, -1).translate(0, -200);
 
         // for (let i = 0; i < vertices.length; i += 15)
         // {
@@ -285,9 +234,30 @@ export default class App2D
         // }
 
 
+        const gradientGen = new GradientGenerator();
+        const stops: GradientStop[] = [
+            {
+                position: 0,
+                color: [1, 0, 0, 1],
+            },
+            // {
+            //     position: 0.25,
+            //     color: [0.25, 0.8, 0, 1],
+            // },
+            {
+                position: 0.5,
+                color: [0, 0, 1, 1],
+            },
+            {
+                position: 1,
+                color: [0, 1, 0, 1],
+            },
+        ];
+
+        const gradientStripTexture = GradientGenerator.getTexture();
+        gradientGen.generateGradient(gradientStripTexture, stops);
+
         let prevTime = 0;
-
-
         const draw = (time: number) =>
         {
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -314,7 +284,11 @@ export default class App2D
                 gl.stencilMaskSeparate(gl.BACK, 63);
 
                 shaderPoly.bind();
-                poly.draw(shaderPoly, camera);
+                shaderPoly.setUniformMat3("view", camera.view());
+                shaderPoly.setUniformMat3("projection", camera.projection());
+                shaderPoly.setUniformMat3("model", poly.model());
+
+                poly.draw();
                 shaderPoly.unbind();
             }
 
@@ -328,8 +302,15 @@ export default class App2D
                 gl.stencilMaskSeparate(gl.FRONT_AND_BACK, 63);
 
                 shaderQuad.bind();
-                shaderQuad.setUniform4f("color", color);
-                quad.draw(shaderQuad, camera);
+                // shaderQuad.setUniform4f("color", color);
+                shaderQuad.setUniformInt("u_gradient_type", 1);
+
+                shaderQuad.setUniformMat3("view", camera.view());
+                shaderQuad.setUniformMat3("projection", camera.projection());
+                shaderQuad.setUniformMat3("model", quad.model());
+                shaderQuad.setUniformMat3("u_paint_transform", quad.paintTransform());
+
+                quad.draw();
                 shaderQuad.unbind();
             }
 

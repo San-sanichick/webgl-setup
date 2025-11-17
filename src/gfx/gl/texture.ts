@@ -89,7 +89,7 @@ export default class Texture implements IDisposable
                 source.data
             );
 
-            gl.generateMipmap(gl.TEXTURE_2D);
+            // gl.generateMipmap(gl.TEXTURE_2D);
         }
         else
         {
@@ -112,7 +112,7 @@ export default class Texture implements IDisposable
                 null,
             );
 
-            gl.generateMipmap(gl.TEXTURE_2D);
+            // gl.generateMipmap(gl.TEXTURE_2D);
         }
     }
 

@@ -1,4 +1,9 @@
 import type { IDisposable } from "@/gfx/utils/types";
+import GL from "../GL";
+
+import VertexArray from "../vertexArray";
+import { Matrix3 } from "@/gfx/utils/Matrix3";
+import IndexBuffer from "../indexBuffer";
 
 import VertexBuffer, {
     BufferType,
@@ -6,42 +11,38 @@ import VertexBuffer, {
     VertexBufferLayout
 } from "../vertexBuffer";
 
-import GL          from "../GL";
-import { Matrix3 } from "@/gfx/utils/Matrix3";
-import IndexBuffer from "../indexBuffer";
-import VertexArray from "../vertexArray";
 
 
-
-export default class Quad implements IDisposable
+export class GradientQuad implements IDisposable
 {
     private _vertices: Array<number>;
     private _indices: Array<number> = [
-        0, 1, 3,
-        1, 2, 3
+        0, 1, 2,
+        2, 3, 0,
     ];
 
     private vao: VertexArray;
 
-    private _model: Matrix3 = new Matrix3();
+    private _model = new Matrix3();
+    private _paintTransform = new Matrix3();
 
 
     constructor(left: number, top: number, width: number, height: number)
     {
         this._vertices = [
             // pos                        // UV
-            left + width, top,            width, 0.0,
-            left + width, top + height,   width, height,
-            left,         top + height,   0.0, height,
             left,         top,            0.0, 0.0,
+            left + width, top,            1.0, 0.0,
+            left + width, top + height,   1.0, 1.0,
+            left,         top + height,   0.0, 1.0,
         ];
 
         const vb = new VertexBuffer(this._vertices);
         const ib = new IndexBuffer(this._indices);
 
         const layout = new VertexBufferLayout([
-            new VertexBufferElement("aPos", BufferType.Float2),
-            new VertexBufferElement("aUV", BufferType.Float2),
+            new VertexBufferElement("a_pos", BufferType.Float2),
+            new VertexBufferElement("a_uv", BufferType.Float2),
         ]);
 
         vb.layout = layout;
@@ -51,6 +52,7 @@ export default class Quad implements IDisposable
         this.vao.setIndexBuffer(ib);
 
         this._model.identity();
+        this._paintTransform.identity();
     }
 
     public delete(): void
@@ -62,6 +64,11 @@ export default class Quad implements IDisposable
     public model()
     {
         return this._model;
+    }
+
+    public paintTransform()
+    {
+        return this._paintTransform;
     }
 
     public draw(): void

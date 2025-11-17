@@ -73,6 +73,12 @@ export default class Shader implements IDisposable
         GL.get().useProgram(null);
     }
 
+    public setUniformInt(name: string, value: number)
+    {
+        const gl = GL.get();
+        const loc = gl.getUniformLocation(this._programId!, name);
+        gl.uniform1i(loc, value);
+    }
 
     public setUniformFloat(name: string, value: number)
     {

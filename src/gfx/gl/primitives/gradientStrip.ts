@@ -1,36 +1,29 @@
 import GL from "../GL";
 import type { IDisposable } from "@/gfx/utils/types";
-import type Shader from "../shader";
-import type Camera from "../camera/camera";
 
 import VertexArray from "../vertexArray";
-import VertexBuffer from "../vertexBuffer";
-import {
+import VertexBuffer, {
     BufferType,
     VertexBufferElement,
     VertexBufferLayout
 } from "../vertexBuffer";
-import { Matrix3 } from "@/gfx/utils/Matrix3";
 
 
 
 
-export class Polygon implements IDisposable
+export class GradientStrip implements IDisposable
 {
-    private vertices: number[];
-
     private vao: VertexArray;
-    private _model: Matrix3 = new Matrix3();
+
+    private vertices: number[] = [];
     private len: number = 0;
 
-    constructor(vertices: number[], len: number)
-    {
-        this.vertices = vertices;
-        this.len = len;
 
+    constructor()
+    {
         const layout = new VertexBufferLayout([
             new VertexBufferElement("a_pos", BufferType.Float2),
-            new VertexBufferElement("a_klm", BufferType.Float3),
+            new VertexBufferElement("a_color", BufferType.Float4),
         ]);
 
         const vbo = new VertexBuffer(this.vertices);
@@ -40,27 +33,27 @@ export class Polygon implements IDisposable
         this.vao.addVertexBuffer(vbo);
     }
 
-
-    public model()
-    {
-        return this._model;
-    }
-
-
     public delete(): void
     {
         this.vao.delete();
     }
 
 
+    public setVertices(vertices: number[], len: number): void
+    {
+        this.vertices = vertices;
+        this.len = len;
+
+        this.vao.setVBOData(vertices, 0);
+    }
+
+
     public draw()
     {
         const gl = GL.get();
-
         this.vao.bind();
 
         gl.drawArrays(gl.TRIANGLES, 0, this.len);
-
         this.vao.unbind();
     }
 }

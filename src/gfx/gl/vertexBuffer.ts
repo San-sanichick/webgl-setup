@@ -59,8 +59,6 @@ export class VertexBufferElement
             case BufferType.Int:
                 return 1;
         }
-
-        return 0;
     }
 }
 
@@ -106,15 +104,19 @@ export default class VertexBuffer implements IDisposable
 {
     private _id: WebGLBuffer | null;
     private _layout: VertexBufferLayout | null = null;
+    private _len: number;
 
     constructor(vertices: ReadonlyArray<number>)
     {
         const gl = GL.get();
         this._id = gl.createBuffer();
 
+        this._len = vertices.length;
+
         gl.bindBuffer(gl.ARRAY_BUFFER, this._id);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
     }
+
 
     public delete(): void
     {
@@ -133,6 +135,32 @@ export default class VertexBuffer implements IDisposable
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
     }
 
+    public setData(vertices: ReadonlyArray<number>): void
+    {
+        const gl = GL.get();
+        if (vertices.length === this._len)
+        {
+            gl.bindBuffer(gl.ARRAY_BUFFER, this._id);
+
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(vertices));
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        }
+        else
+        {
+            gl.deleteBuffer(this._id);
+
+            this._id = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this._id);
+
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        }
+
+        this._len = vertices.length;
+    }
+
     public set layout(layout: VertexBufferLayout)
     {
         this._layout = layout;
@@ -141,5 +169,10 @@ export default class VertexBuffer implements IDisposable
     public get layout(): VertexBufferLayout | null
     {
         return this._layout;
+    }
+
+    public get size()
+    {
+        return this._len;
     }
 }

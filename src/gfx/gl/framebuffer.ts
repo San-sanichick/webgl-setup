@@ -24,6 +24,7 @@ export default class Framebuffer implements IDisposable
         const gl = GL.get();
         console.assert(slot < 31, "Invalid color attachment slot");
 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this._id);
         gl.framebufferTexture2D(
             gl.FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0 + slot,
@@ -31,6 +32,25 @@ export default class Framebuffer implements IDisposable
             texture.id,
             0
         );
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
+    public dettach(slot: number): void
+    {
+        const gl = GL.get();
+        console.assert(slot < 31, "Invalid color attachment slot");
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this._id);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0 + slot,
+            gl.TEXTURE_2D,
+            null,
+            0
+        );
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 
     public bind(): void
