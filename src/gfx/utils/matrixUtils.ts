@@ -24,8 +24,7 @@ export function mult4x4Fast(m1: number[], m2: number[]): number[]
 
     buffer4x4[4] = m2[4] * m1[0] +
                 m2[5] * m1[4] +
-                m2[6] * m1[8] +
-                m2[7] * m1[12];
+                m2[6] * m1[8];
 
     buffer4x4[5] = m2[4] * m1[1] +
                 m2[5] * m1[5] +
@@ -41,8 +40,7 @@ export function mult4x4Fast(m1: number[], m2: number[]): number[]
 
     buffer4x4[8] = m2[8] * m1[0] +
                 m2[9] * m1[4] +
-                m2[10] * m1[8] +
-                m2[11] * m1[12];
+                m2[10] * m1[8];
 
     buffer4x4[9] = m2[8] * m1[1] +
                 m2[9] * m1[5] +
@@ -58,8 +56,7 @@ export function mult4x4Fast(m1: number[], m2: number[]): number[]
 
     buffer4x4[12] = m2[12] * m1[0] +
                 m2[13] * m1[4] +
-                m2[14] * m1[8] +
-                m2[15] * m1[12];
+                m2[14] * m1[8];
 
     buffer4x4[13] = m2[12] * m1[1] +
                 m2[13] * m1[5] +
