@@ -1,13 +1,11 @@
-import {
-    Vector4,
-    Vector2,
-} from "threejs-math";
-
 import GL           from "./gl/GL";
 import OrthoCamera  from "./gl/camera/orthoCamera";
 import TextResource from "./utils/textResource";
 import Shader       from "./gl/shader";
-import Quad         from "./gl/primitives/quad";
+
+// import Quad         from "./gl/primitives/quad";
+import { Polygon } from "./gl/primitives/polygon";
+import { GradientQuad } from "./gl/primitives/gradientQuad";
 
 
 // import Vert from "@/assets/shaders/vert.glsl";
@@ -20,15 +18,13 @@ import PolyFrag from "@/assets/shaders/vector/frag.glsl";
 
 // @ts-ignore
 import Font from "@/assets/fonts/font.ttf?uint8array";
-import { Polygon } from "./gl/primitives/polygon";
 import { getFont } from "./utils/font";
 
 import {
-    generateVectorGeometryFromData,
+    triangulateVectorGeometryFromData,
     VectorDataGenerator
 } from "./utils/vectorGeometryGenerator";
 import { GradientGenerator, type GradientStop } from "./gl/gradient/gradientGenerator";
-import { GradientQuad } from "./gl/primitives/gradientQuad";
 
 
 
@@ -92,9 +88,6 @@ export default class App2D
         const shaderQuad = new Shader(quadVertRes, quadFragRes);
         const shaderPoly = new Shader(polyVertRes, polyFragRes);
 
-        const font = getFont(Font);
-
-
         const width = this._canvas.width;
         const height = this._canvas.height;
         this._canvas.style.width = `${width}px`;
@@ -120,8 +113,6 @@ export default class App2D
             drag = false;
         })
 
-        const maxScale = 19;
-
         document.addEventListener("wheel", (e: WheelEvent) =>
         {
             const oldScale = this._scale;
@@ -140,6 +131,7 @@ export default class App2D
             if (e.code === "Escape")
             {
                 cancelAnimationFrame(requestId);
+                cleanup();
                 requestId = -1;
                 return;
             }
@@ -163,13 +155,11 @@ export default class App2D
         });
 
 
-        const color = new Vector4(0.5, 1.0, 0.3, 1.0);
-
-        // const quad = new Quad(0, 0, 1450, 450);
-        const quad = new GradientQuad(0, 0, 400, 400);
 
 
         const gen = new VectorDataGenerator();
+
+        // const font = getFont(Font);
         // const fontPath = font.getPath("The quick brown fox jumps over the lazy dog", 0, 150, 20);
         // const commands = fontPath.commands;
         //
@@ -217,28 +207,21 @@ export default class App2D
 
 
 
-        const now = performance.now();
         const rows = gen.buildGeometry();
-        const [vertices, len] = generateVectorGeometryFromData(rows);
-        console.log(performance.now() - now);
+        const [vertices, len] = triangulateVectorGeometryFromData(rows);
         
         const poly = new Polygon(vertices, len);
         // poly.model().scale(1, -1).translate(0, -200);
 
-        // for (let i = 0; i < vertices.length; i += 15)
-        // {
-        //     console.log("p1", vertices[i], vertices[i + 1])
-        //     console.log("p2", vertices[i + 5], vertices[i + 6])
-        //     console.log("p3", vertices[i + 10], vertices[i + 11])
-        //     console.log("===")
-        // }
+        // const quad = new Quad(0, 0, 1450, 450);
+        const quad = new GradientQuad(0, 0, 400, 400);
 
 
         const gradientGen = new GradientGenerator();
         const stops: GradientStop[] = [
             {
                 position: 0,
-                color: [1, 0, 0, 1],
+                color: [0, 1, 0, 1],
             },
             // {
             //     position: 0.25,
@@ -250,12 +233,21 @@ export default class App2D
             },
             {
                 position: 1,
-                color: [0, 1, 0, 1],
+                color: [1, 0, 0, 1],
             },
         ];
 
         const gradientStripTexture = GradientGenerator.getTexture();
         gradientGen.generateGradient(gradientStripTexture, stops);
+
+        function cleanup()
+        {
+            gradientStripTexture.delete();
+            shaderQuad.delete();
+            shaderPoly.delete();
+            quad.delete();
+            poly.delete();
+        }
 
         let prevTime = 0;
         const draw = (time: number) =>
@@ -270,7 +262,7 @@ export default class App2D
 
             // NOTE: This case might just work with everything, LMAO
             // polygons with holes
-            gl.enable(gl.BLEND);
+            gl.disable(gl.BLEND);
             gl.enable(gl.STENCIL_TEST);
             {
                 // draw stencil
@@ -294,16 +286,16 @@ export default class App2D
 
             gl.enable(gl.BLEND);
             {
-                // draw cover
+                // draw cover (this is the fill)
                 gl.colorMask(true, true, true, true);
                 gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
                 gl.stencilFuncSeparate(gl.FRONT_AND_BACK, gl.NOTEQUAL, 0, 1);
                 gl.stencilOpSeparate(gl.FRONT_AND_BACK, 0, 0, 0);
                 gl.stencilMaskSeparate(gl.FRONT_AND_BACK, 63);
 
                 shaderQuad.bind();
-                // shaderQuad.setUniform4f("color", color);
-                shaderQuad.setUniformInt("u_gradient_type", 1);
+                shaderQuad.setUniformInt("u_gradient_type", 2);
 
                 shaderQuad.setUniformMat3("view", camera.view());
                 shaderQuad.setUniformMat3("projection", camera.projection());

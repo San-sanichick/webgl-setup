@@ -52,7 +52,10 @@ export class GradientQuad implements IDisposable
         this.vao.setIndexBuffer(ib);
 
         this._model.identity();
-        this._paintTransform.identity();
+        this._paintTransform
+            .identity()
+            // .translate(-0.25, 0)
+            .scale(1, 1);
     }
 
     public delete(): void

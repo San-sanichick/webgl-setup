@@ -1,7 +1,11 @@
-import { Matrix3 } from "./Matrix3";
 import { Matrix4 } from "./Matrix4";
-import { determinant3x3, mult4x4, multiply4x4By3x4 } from "./matrixUtils";
 import { ReservableStack } from "./stack";
+
+import {
+    determinant3x3,
+    mult4x4Fast,
+    multiply4x4By3x4
+} from "./matrixUtils";
 
 const EPSILON = 1e-5;
 const CURVE_CONVERSION_COEFF = 2 / 3;
@@ -11,8 +15,8 @@ const QUAD_K2 = 1 / 3;
 const QUAD_K3 = 2 / 3;
 const QUAD_L3 = 1 / 3;
 
-type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
 
+type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
 
 class Segment
 {
@@ -133,6 +137,12 @@ function boundsCheck(val: number, start: number, end: number): boolean
 }
 
 
+
+
+/**
+ * @see C. Loop & J. Blinn - Resolution Independent Curve Rendering
+ * using Programmable Graphics Hardware
+ */
 export class VectorDataGenerator
 {
     private segments: Segment[][];
@@ -515,9 +525,8 @@ export class VectorDataGenerator
 
                     if (segment.isCubic())
                     {
-                        // NOTE: I am going to inline fucking EVERYTHING,
+                        // NOTE: I am going to inline EVERYTHING,
                         // because performance
-                        // clean code bad
 
                         // --- get power basis
                         const B = [
@@ -788,7 +797,8 @@ export class VectorDataGenerator
                             }
 
                             // TODO: optimize for redundant multiplications
-                            const res = mult4x4(F, MI3);
+                            // last column is 1, 0, 0, 0, we can remove that shit
+                            const res = mult4x4Fast(F.elements, MI3.elements);
 
                             k1 = kSign * res[0];
                             l1 = lSign * res[1];
@@ -810,8 +820,8 @@ export class VectorDataGenerator
                         {
                             // NOTE: the article actually gives completely
                             // different values, but they don't work.
-                            // These are taken from Figma, but inverted
-
+                            // These are taken from Figma, but flipped,
+                            // because of course it doesn't work as is, for some reason
                             k1 = 0;
                             l1 = 0;
                             m1 = 0;
@@ -852,13 +862,13 @@ export class VectorDataGenerator
 
 export function generateBoundingBoxFromData(data: VectorGeometryRow[][])
 {
-
+    // TODO: implement this lmao
 }
 
 
 const COMPONENT_COUNT = 5;
 
-export function generateVectorGeometryFromData(data: VectorGeometryRow[][]): [vertices: number[], len: number]
+export function triangulateVectorGeometryFromData(data: VectorGeometryRow[][]): [vertices: number[], len: number]
 {
     const stack1 = new ReservableStack<VectorGeometryRow>(0);
     const stack2 = new ReservableStack<VectorGeometryRow>(data.length);

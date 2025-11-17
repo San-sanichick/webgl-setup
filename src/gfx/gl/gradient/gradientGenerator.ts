@@ -1,5 +1,4 @@
 import type { IDisposable, Tuple } from "@/gfx/utils/types";
-import { Vector2 } from "threejs-math";
 
 import Framebuffer from "../framebuffer";
 import Shader      from "../shader";
@@ -29,14 +28,9 @@ export type GradientStop = {
 
 
 
-function distanceBetween(v1: Vector2, v2: Vector2): number
-{
-    const dx = v2.x - v1.x;
-    const dy = v2.y - v1.y;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
-
+/**
+ * @see https://mtldoc.com/metal/2022/08/04/shaders-explained-gradients
+ */
 export class GradientGenerator implements IDisposable
 {
     private fb: Framebuffer;
@@ -48,6 +42,7 @@ export class GradientGenerator implements IDisposable
         0, -2 / HEIGHT , 0,
         -1, 1, 1,
     ]);
+
 
 
     constructor()
@@ -68,6 +63,7 @@ export class GradientGenerator implements IDisposable
     }
 
 
+
     public static getTexture(): Texture
     {
         return new Texture({
@@ -85,6 +81,8 @@ export class GradientGenerator implements IDisposable
 
     public generateGradient(texture1d: Texture, stops: GradientStop[]): void
     {
+        console.assert(stops.length !== 0, "Stops array should not be empty");
+
         this.fb.attach(texture1d, 0);
         const _stops = stops.slice();
         const first = _stops[0];
@@ -103,7 +101,7 @@ export class GradientGenerator implements IDisposable
             _stops.push({
                 position: 1,
                 color: last.color,
-            })
+            });
         }
 
         const tex1dVertices = new Array<number>(_stops.length * 18);

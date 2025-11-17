@@ -3,87 +3,177 @@ import type { Matrix4 } from "./Matrix4";
 
 const buffer4x4 = new Array<number>(16);
 
-export function mult4x4(m1: Matrix4, m2: Matrix4): number[]
+export function mult4x4Fast(m1: number[], m2: number[]): number[]
 {
-    buffer4x4[0] = m2.elements[0] * m1.elements[0] +
-                m2.elements[1] * m1.elements[4] +
-                m2.elements[2] * m1.elements[8] +
-                m2.elements[3] * m1.elements[12];
+    buffer4x4[0] = m2[0] * m1[0] +
+                m2[1] * m1[4] +
+                m2[2] * m1[8] +
+                m2[3] * m1[12];
 
-    buffer4x4[1] = m2.elements[0] * m1.elements[1] +
-                m2.elements[1] * m1.elements[5] +
-                m2.elements[2] * m1.elements[9] +
-                m2.elements[3] * m1.elements[13];
+    buffer4x4[1] = m2[0] * m1[1] +
+                m2[1] * m1[5] +
+                m2[2] * m1[9] +
+                m2[3] * m1[13];
 
-    buffer4x4[2] = m2.elements[0] * m1.elements[2] +
-                m2.elements[1] * m1.elements[6] +
-                m2.elements[2] * m1.elements[10] +
-                m2.elements[3] * m1.elements[14];
+    buffer4x4[2] = m2[0] * m1[2] +
+                m2[1] * m1[6] +
+                m2[2] * m1[10] +
+                m2[3] * m1[14];
 
-    buffer4x4[3] = m2.elements[0] * m1.elements[3] +
-                m2.elements[1] * m1.elements[7] +
-                m2.elements[2] * m1.elements[11] +
-                m2.elements[3] * m1.elements[15];
+    buffer4x4[3] = m2[0] * m1[3];
+    // buffer4x4[3] = m2[0] * m1[3] +
+    //             m2[1] * m1[7] +
+    //             m2[2] * m1[11] +
+    //             m2[3] * m1[15];
 
-    buffer4x4[4] = m2.elements[4] * m1.elements[0] +
-                m2.elements[5] * m1.elements[4] +
-                m2.elements[6] * m1.elements[8] +
-                m2.elements[7] * m1.elements[12];
+    buffer4x4[4] = m2[4] * m1[0] +
+                m2[5] * m1[4] +
+                m2[6] * m1[8] +
+                m2[7] * m1[12];
 
-    buffer4x4[5] = m2.elements[4] * m1.elements[1] +
-                m2.elements[5] * m1.elements[5] +
-                m2.elements[6] * m1.elements[9] +
-                m2.elements[7] * m1.elements[13];
+    buffer4x4[5] = m2[4] * m1[1] +
+                m2[5] * m1[5] +
+                m2[6] * m1[9] +
+                m2[7] * m1[13];
 
-    buffer4x4[6] = m2.elements[4] * m1.elements[2] +
-                m2.elements[5] * m1.elements[6] +
-                m2.elements[6] * m1.elements[10] +
-                m2.elements[7] * m1.elements[14];
+    buffer4x4[6] = m2[4] * m1[2] +
+                m2[5] * m1[6] +
+                m2[6] * m1[10] +
+                m2[7] * m1[14];
 
-    buffer4x4[7] = m2.elements[4] * m1.elements[3] +
-                m2.elements[5] * m1.elements[7] +
-                m2.elements[6] * m1.elements[11] +
-                m2.elements[7] * m1.elements[15];
+    buffer4x4[7] = m2[4] * m1[3];
+    // buffer4x4[7] = m2[4] * m1[3] +
+    //             m2[5] * m1[7] +
+    //             m2[6] * m1[11] +
+    //             m2[7] * m1[15];
 
-    buffer4x4[8] = m2.elements[8] * m1.elements[0] +
-                m2.elements[9] * m1.elements[4] +
-                m2.elements[10] * m1.elements[8] +
-                m2.elements[11] * m1.elements[12];
+    buffer4x4[8] = m2[8] * m1[0] +
+                m2[9] * m1[4] +
+                m2[10] * m1[8] +
+                m2[11] * m1[12];
 
-    buffer4x4[9] = m2.elements[8] * m1.elements[1] +
-                m2.elements[9] * m1.elements[5] +
-                m2.elements[10] * m1.elements[9] +
-                m2.elements[11] * m1.elements[13];
+    buffer4x4[9] = m2[8] * m1[1] +
+                m2[9] * m1[5] +
+                m2[10] * m1[9] +
+                m2[11] * m1[13];
 
-    buffer4x4[10] = m2.elements[8] * m1.elements[2] +
-                m2.elements[9] * m1.elements[6] +
-                m2.elements[10] * m1.elements[10] +
-                m2.elements[11] * m1.elements[14];
+    buffer4x4[10] = m2[8] * m1[2] +
+                m2[9] * m1[6] +
+                m2[10] * m1[10] +
+                m2[11] * m1[14];
 
-    buffer4x4[11] = m2.elements[8] * m1.elements[3] +
-                m2.elements[9] * m1.elements[7] +
-                m2.elements[10] * m1.elements[11] +
-                m2.elements[11] * m1.elements[15];
+    buffer4x4[11] = m2[8] * m1[3];
+    // buffer4x4[11] = m2[8] * m1[3] +
+    //             m2[9] * m1[7] +
+    //             m2[10] * m1[11] +
+    //             m2[11] * m1[15];
 
-    buffer4x4[12] = m2.elements[12] * m1.elements[0] +
-                m2.elements[13] * m1.elements[4] +
-                m2.elements[14] * m1.elements[8] +
-                m2.elements[15] * m1.elements[12];
+    buffer4x4[12] = m2[12] * m1[0] +
+                m2[13] * m1[4] +
+                m2[14] * m1[8] +
+                m2[15] * m1[12];
 
-    buffer4x4[13] = m2.elements[12] * m1.elements[1] +
-                m2.elements[13] * m1.elements[5] +
-                m2.elements[14] * m1.elements[9] +
-                m2.elements[15] * m1.elements[13];
+    buffer4x4[13] = m2[12] * m1[1] +
+                m2[13] * m1[5] +
+                m2[14] * m1[9] +
+                m2[15] * m1[13];
 
-    buffer4x4[14] = m2.elements[12] * m1.elements[2] +
-                m2.elements[13] * m1.elements[6] +
-                m2.elements[14] * m1.elements[10] +
-                m2.elements[15] * m1.elements[14];
+    buffer4x4[14] = m2[12] * m1[2] +
+                m2[13] * m1[6] +
+                m2[14] * m1[10] +
+                m2[15] * m1[14];
 
-    buffer4x4[15] = m2.elements[12] * m1.elements[3] +
-                m2.elements[13] * m1.elements[7] +
-                m2.elements[14] * m1.elements[11] +
-                m2.elements[15] * m1.elements[15];
+    buffer4x4[15] = m2[12] * m1[3];
+    // buffer4x4[15] = m2[12] * m1[3] +
+    //             m2[13] * m1[7] +
+    //             m2[14] * m1[11] +
+    //             m2[15] * m1[15];
+
+    return buffer4x4;
+
+}
+
+export function mult4x4(m1: number[], m2: number[]): number[]
+{
+    buffer4x4[0] = m2[0] * m1[0] +
+                m2[1] * m1[4] +
+                m2[2] * m1[8] +
+                m2[3] * m1[12];
+
+    buffer4x4[1] = m2[0] * m1[1] +
+                m2[1] * m1[5] +
+                m2[2] * m1[9] +
+                m2[3] * m1[13];
+
+    buffer4x4[2] = m2[0] * m1[2] +
+                m2[1] * m1[6] +
+                m2[2] * m1[10] +
+                m2[3] * m1[14];
+
+    buffer4x4[3] = m2[0] * m1[3] +
+                m2[1] * m1[7] +
+                m2[2] * m1[11] +
+                m2[3] * m1[15];
+
+    buffer4x4[4] = m2[4] * m1[0] +
+                m2[5] * m1[4] +
+                m2[6] * m1[8] +
+                m2[7] * m1[12];
+
+    buffer4x4[5] = m2[4] * m1[1] +
+                m2[5] * m1[5] +
+                m2[6] * m1[9] +
+                m2[7] * m1[13];
+
+    buffer4x4[6] = m2[4] * m1[2] +
+                m2[5] * m1[6] +
+                m2[6] * m1[10] +
+                m2[7] * m1[14];
+
+    buffer4x4[7] = m2[4] * m1[3] +
+                m2[5] * m1[7] +
+                m2[6] * m1[11] +
+                m2[7] * m1[15];
+
+    buffer4x4[8] = m2[8] * m1[0] +
+                m2[9] * m1[4] +
+                m2[10] * m1[8] +
+                m2[11] * m1[12];
+
+    buffer4x4[9] = m2[8] * m1[1] +
+                m2[9] * m1[5] +
+                m2[10] * m1[9] +
+                m2[11] * m1[13];
+
+    buffer4x4[10] = m2[8] * m1[2] +
+                m2[9] * m1[6] +
+                m2[10] * m1[10] +
+                m2[11] * m1[14];
+
+    buffer4x4[11] = m2[8] * m1[3] +
+                m2[9] * m1[7] +
+                m2[10] * m1[11] +
+                m2[11] * m1[15];
+
+    buffer4x4[12] = m2[12] * m1[0] +
+                m2[13] * m1[4] +
+                m2[14] * m1[8] +
+                m2[15] * m1[12];
+
+    buffer4x4[13] = m2[12] * m1[1] +
+                m2[13] * m1[5] +
+                m2[14] * m1[9] +
+                m2[15] * m1[13];
+
+    buffer4x4[14] = m2[12] * m1[2] +
+                m2[13] * m1[6] +
+                m2[14] * m1[10] +
+                m2[15] * m1[14];
+
+    buffer4x4[15] = m2[12] * m1[3] +
+                m2[13] * m1[7] +
+                m2[14] * m1[11] +
+                m2[15] * m1[15];
 
     return buffer4x4;
 }
