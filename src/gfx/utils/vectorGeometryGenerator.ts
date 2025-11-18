@@ -6,6 +6,7 @@ import {
     mult4x4Fast,
     multiply4x4By3x4
 } from "./matrixUtils";
+import { createLanguageServiceSourceFile } from "typescript";
 
 const EPSILON = 1e-5;
 const CURVE_CONVERSION_COEFF = 2 / 3;
@@ -242,12 +243,99 @@ export class VectorDataGenerator
             )
         );
 
-        this.lastPoint[0] += dx;
-        this.lastPoint[1] += dy;
+        this.lastPoint[0] = x2;
+        this.lastPoint[1] = y2;
 
         return this;
     }
 
+    public horizontalTo(x: number): this
+    {
+        if (this.lastPoint[0] === x)
+        {
+            return this;
+        }
+
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            x,
+            this.lastPoint[1],
+        );
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[0] = x;
+
+        return this;
+    }
+
+    public horizontalToRelative(dx: number): this
+    {
+        const x2 = this.lastPoint[0] + dx;
+        if (
+            this.lastPoint[0] === x2
+        )
+        {
+            return this;
+        }
+
+        this.getLastVector().push(
+            new Segment(
+                this.lastPoint[0],
+                this.lastPoint[1],
+                x2,
+                this.lastPoint[1],
+            )
+        );
+
+        this.lastPoint[0] = x2;
+
+        return this;
+    }
+
+    public verticalTo(y: number): this
+    {
+        if (this.lastPoint[1] === y)
+        {
+            return this;
+        }
+
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            this.lastPoint[0],
+            y,
+        );
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[1] = y;
+
+        return this;
+    }
+
+    public vertivalToRelative(dy: number): this
+    {
+        const y2 = this.lastPoint[1] + dy;
+        if (this.lastPoint[1] === y2)
+        {
+            return this;
+        }
+
+        this.getLastVector().push(
+            new Segment(
+                this.lastPoint[0],
+                this.lastPoint[1],
+                this.lastPoint[0],
+                y2,
+            )
+        );
+
+        this.lastPoint[1] = y2;
+
+        return this;
+    }
 
 
     public quadTo(x: number, y: number, cx: number, cy: number): this
@@ -292,6 +380,65 @@ export class VectorDataGenerator
         return this;
     }
 
+    public tQuadTo(x: number, y: number): this
+    {
+        const prev = this.getLastVector().at(-1);
+        let cx = this.lastPoint[0];
+        let cy = this.lastPoint[1];
+        if (prev && prev.isQuadratic())
+        {
+            cx = 2 * this.lastPoint[0] - prev.cx1!;
+            cy = 2 * this.lastPoint[1] - prev.cy1!;
+        }
+
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            x,
+            y,
+            cx,
+            cy,
+        );
+
+        seg.quadraticToCubic();
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[0] = x;
+        this.lastPoint[1] = y;
+
+        return this;
+    }
+
+    public tQuadToRelative(dx: number, dy: number): this
+    {
+        const prev = this.getLastVector().at(-1);
+        let cx = this.lastPoint[0];
+        let cy = this.lastPoint[1];
+        if (prev && prev.isQuadratic())
+        {
+            cx = 2 * this.lastPoint[0] - prev.cx1!;
+            cy = 2 * this.lastPoint[1] - prev.cy1!;
+        }
+
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            this.lastPoint[0] + dx,
+            this.lastPoint[1] + dy,
+            cx,
+            cy,
+        );
+
+        seg.quadraticToCubic();
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[0] += dx;
+        this.lastPoint[1] += dy;
+
+        return this;
+    }
 
 
     public cubicTo(x: number, y: number, cx1: number, cy1: number, cx2: number, cy2: number): this
@@ -327,11 +474,11 @@ export class VectorDataGenerator
             this.lastPoint[0],
             this.lastPoint[1],
             this.lastPoint[0] + dx,
-            this.lastPoint[0] + dy,
+            this.lastPoint[1] + dy,
             this.lastPoint[0] + cdx1,
-            this.lastPoint[0] + cdy1,
+            this.lastPoint[1] + cdy1,
             this.lastPoint[0] + cdx2,
-            this.lastPoint[0] + cdy2,
+            this.lastPoint[1] + cdy2,
         );
 
         this.getLastVector().push(seg);
@@ -341,6 +488,71 @@ export class VectorDataGenerator
         return this;
     }
 
+
+    public sCubicTo(x: number, y: number, cx2: number, cy2: number): this
+    {
+        const prev = this.getLastVector().at(-1);
+        let cx1 = this.lastPoint[0];
+        let cy1 = this.lastPoint[1];
+        if (prev && prev.isCubic())
+        {
+            cx1 = 2 * this.lastPoint[0] - prev.cx2!;
+            cy1 = 2 * this.lastPoint[1] - prev.cy2!;
+        }
+
+
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            x,
+            y,
+            cx1,
+            cy1,
+            cx2,
+            cy2,
+        );
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[0] = x;
+        this.lastPoint[1] = y;
+        return this;
+    }
+
+    public sCubicToRelative(
+        dx: number,
+        dy: number,
+        cdx2: number,
+        cdy2: number,
+    ): this
+    {
+        const prev = this.getLastVector().at(-1);
+        let cx1 = this.lastPoint[0];
+        let cy1 = this.lastPoint[1];
+        if (prev && prev.isCubic())
+        {
+            cx1 = 2 * this.lastPoint[0] - prev.cx2!;
+            cy1 = 2 * this.lastPoint[1] - prev.cy2!;
+        }
+
+
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            this.lastPoint[0] + dx,
+            this.lastPoint[1] + dy,
+            cx1,
+            cy1,
+            this.lastPoint[0] + cdx2,
+            this.lastPoint[1] + cdy2,
+        );
+
+        this.getLastVector().push(seg);
+
+        this.lastPoint[0] += dx;
+        this.lastPoint[1] += dy;
+        return this;
+    }
 
 
     public close(): this
@@ -575,6 +787,7 @@ export class VectorDataGenerator
 
                         // get curve type
                         const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
+                        // console.log(CubicType[cubicType]);
 
                         // this is to determine if we are convex or concave
                         let kSign = 1;
@@ -639,8 +852,17 @@ export class VectorDataGenerator
                                 }
                                 else
                                 {
-                                    kSign = Math.sign(d1);
-                                    lSign = Math.sign(d1);
+                                    // FIXME: This works incorrectly in certain cases
+                                    if (Math.abs(d1) <= EPSILON)
+                                    {
+                                        kSign = 1;
+                                        lSign = 1;
+                                    }
+                                    else
+                                    {
+                                        kSign = Math.sign(d1);
+                                        lSign = Math.sign(d1);
+                                    }
                                 }
 
                                 break;
@@ -690,25 +912,33 @@ export class VectorDataGenerator
                                 );
 
 
-                                // NOTE: I have no idea if this works correctly
                                 const h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
 
-                                if (segment.flip && (d1 * h1 > 0))
+                                if (segment.flip && Math.abs(d1 * h1) >= EPSILON)
                                 {
                                     kSign = -1;
                                     lSign = -1;
                                 }
                                 else
                                 {
-                                    const d33 = d3 * d3 * d3;
+                                    const d33 = d1 * d1 * d1;
                                     const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
 
                                     const alpha1 = HESSIAN_COEFF * d33 * h1;
                                     const alpha2 = HESSIAN_COEFF * d33 * h2;
                                     const alpha = Math.max(alpha1, alpha2);
+                                    // console.log(alpha)
 
-                                    kSign = Math.sign(alpha) || 1;
-                                    lSign = Math.sign(alpha) || 1;
+                                    if (Math.abs(alpha) <= EPSILON)
+                                    {
+                                        kSign = 1;
+                                        lSign = 1;
+                                    }
+                                    else
+                                    {
+                                        kSign = Math.sign(alpha);
+                                        lSign = Math.sign(alpha);
+                                    }
                                 }
 
                                 break;
