@@ -250,7 +250,7 @@ export default class App2D
         // poly.model().scale(1, -1).translate(0, -200);
 
         // const quad = new Quad(0, 0, 1450, 450);
-        const quad = new GradientQuad(0, 0, 400, 400);
+        const quad = new GradientQuad(50, 0, 200, 200);
 
 
         const gradientGen = new GradientGenerator();

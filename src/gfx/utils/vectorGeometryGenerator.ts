@@ -6,15 +6,19 @@ import {
     mult4x4Fast,
     multiply4x4By3x4
 } from "./matrixUtils";
-import { createLanguageServiceSourceFile } from "typescript";
+
+
 
 const EPSILON = 1e-5;
+
 const CURVE_CONVERSION_COEFF = 2 / 3;
 const HESSIAN_COEFF = 32 / 3;
 
 const QUAD_K2 = 1 / 3;
 const QUAD_K3 = 2 / 3;
 const QUAD_L3 = 1 / 3;
+
+
 
 
 type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
@@ -787,7 +791,6 @@ export class VectorDataGenerator
 
                         // get curve type
                         const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
-                        // console.log(CubicType[cubicType]);
 
                         // this is to determine if we are convex or concave
                         let kSign = 1;
@@ -852,8 +855,8 @@ export class VectorDataGenerator
                                 }
                                 else
                                 {
-                                    // FIXME: This works incorrectly in certain cases
-                                    if (Math.abs(d1) <= EPSILON)
+                                    // NOTE: this might break, but right now this works
+                                    if (Math.abs(d1) <= EPSILON || d3 > 0 || d1 === d2)
                                     {
                                         kSign = 1;
                                         lSign = 1;
@@ -914,30 +917,30 @@ export class VectorDataGenerator
 
                                 const h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
 
-                                if (segment.flip && Math.abs(d1 * h1) >= EPSILON)
+                                // NOTE: All of this is just guess work
+                                if (segment.flip && Math.abs(d1 * h1) >= 0)
                                 {
                                     kSign = -1;
                                     lSign = -1;
                                 }
                                 else
                                 {
-                                    const d33 = d1 * d1 * d1;
+                                    const d13 = d1 * d1 * d1;
                                     const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
 
-                                    const alpha1 = HESSIAN_COEFF * d33 * h1;
-                                    const alpha2 = HESSIAN_COEFF * d33 * h2;
+                                    const alpha1 = HESSIAN_COEFF * d13 * h1;
+                                    const alpha2 = HESSIAN_COEFF * d13 * h2;
                                     const alpha = Math.max(alpha1, alpha2);
-                                    // console.log(alpha)
 
-                                    if (Math.abs(alpha) <= EPSILON)
+                                    if (alpha <= EPSILON)
                                     {
                                         kSign = 1;
                                         lSign = 1;
                                     }
                                     else
                                     {
-                                        kSign = Math.sign(alpha);
-                                        lSign = Math.sign(alpha);
+                                        kSign = Math.sign(alpha) || 1;
+                                        lSign = Math.sign(alpha) || 1;
                                     }
                                 }
 
