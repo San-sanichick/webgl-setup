@@ -325,20 +325,20 @@ export default class App2D
         let frameIndex = 0;
         let prevTime = 0;
 
-        const frametime = 1000 / 30;
+        const frametime = 1000 / 40;
 
         const frameCounter = document.querySelector<HTMLDivElement>("#frameCounter")!;
 
-        buildFrame(frames[547]);
-        console.log(frames[547])
+        // buildFrame(frames[547]);
+        // console.log(frames[547])
         const draw = (time: number, frameByFrame?: boolean) =>
         {
-            const elapsed = performance.now() - prevTime;
+            const elapsed = performance.now() - prevTime - 1;
             if (elapsed > frametime)
             {
                 frameCounter.textContent = String(frameIndex);
 
-                // buildFrame(frames[frameIndex]);
+                buildFrame(frames[frameIndex]);
                 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
                 gl.clearColor(1, 1, 1, 1.0);
@@ -433,8 +433,8 @@ export default class App2D
                 gl.stencilOpSeparate(gl.FRONT_AND_BACK, gl.KEEP, gl.KEEP, gl.KEEP);
                 gl.stencilMaskSeparate(gl.FRONT_AND_BACK, 255);
 
-                // frameIndex++;
-                if (frameIndex > frames.length)
+                frameIndex++;
+                if (frameIndex >= frames.length)
                 {
                     frameIndex = 0;
                 }

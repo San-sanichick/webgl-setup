@@ -710,7 +710,6 @@ export class VectorDataGenerator
     // 2) Reduce the amount of function calls
     public buildGeometry(): VectorGeometryRow[][]
     {
-        console.log(this.segments);
         const rows: VectorGeometryRow[][] = [];
 
         for (let i = 0; i < this.segments.length; i++)
