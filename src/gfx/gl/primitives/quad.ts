@@ -1,7 +1,7 @@
 import type { IDisposable } from "@/gfx/utils/types";
 
-import VertexBuffer, {
-    BufferType,
+import {
+    VertexBuffer, 
     VertexBufferElement,
     VertexBufferLayout
 } from "../vertexBuffer";
@@ -10,6 +10,7 @@ import GL          from "../GL";
 import { Matrix3 } from "@/gfx/utils/Matrix3";
 import IndexBuffer from "../indexBuffer";
 import VertexArray from "../vertexArray";
+import { BUFFER_TYPE } from "../utils";
 
 
 
@@ -40,8 +41,8 @@ export default class Quad implements IDisposable
         const ib = new IndexBuffer(this._indices);
 
         const layout = new VertexBufferLayout([
-            new VertexBufferElement("aPos", BufferType.Float2),
-            new VertexBufferElement("aUV", BufferType.Float2),
+            new VertexBufferElement("aPos", BUFFER_TYPE.Float2),
+            new VertexBufferElement("aUV", BUFFER_TYPE.Float2),
         ]);
 
         vb.layout = layout;

@@ -1,43 +1,16 @@
-import type { IDisposable } from "../utils/types";
 import GL from "./GL";
+import { BUFFER_OBJECT_DRAW_MODE, BUFFER_TYPE, bufferTypeSize, getGLDrawMode } from "./utils";
 
-
-export enum BufferType
-{
-    Float = 0,
-    Float2,
-    Float3,
-    Float4,
-    Int,
-}
-
-
-function bufferTypeSize(type: BufferType): number
-{
-    switch (type)
-    {
-        case BufferType.Float:
-            return 4;
-        case BufferType.Float2:
-            return 4 * 2;
-        case BufferType.Float3:
-            return 4 * 3;
-        case BufferType.Float4:
-            return 4 * 4;
-        case BufferType.Int:
-            return 4;
-    }
-}
 
 
 export class VertexBufferElement
 {
     public name: string;
-    public type: BufferType;
+    public type: BUFFER_TYPE;
     public size: number;
     public offset: number = 0;
 
-    constructor(name: string, type: BufferType)
+    constructor(name: string, type: BUFFER_TYPE)
     {
         this.name = name;
         this.type = type;
@@ -48,15 +21,17 @@ export class VertexBufferElement
     {
         switch (this.type)
         {
-            case BufferType.Float:
+            case BUFFER_TYPE.Float:
                 return 1;
-            case BufferType.Float2:
+            case BUFFER_TYPE.Float2:
                 return 2;
-            case BufferType.Float3:
+            case BUFFER_TYPE.Float3:
                 return 3;
-            case BufferType.Float4:
+            case BUFFER_TYPE.Float4:
                 return 4;
-            case BufferType.Int:
+            case BUFFER_TYPE.Int:
+                return 1;
+            default:
                 return 1;
         }
     }
@@ -65,15 +40,15 @@ export class VertexBufferElement
 export class VertexBufferLayout
 {
     private _stride: number = 0;
-    private _elements: Array<VertexBufferElement>;
+    private _elements: VertexBufferElement[];
 
-    constructor(elements: Array<VertexBufferElement>)
+    constructor(elements: VertexBufferElement[])
     {
         this._elements = elements;
         this.calcStride();
     }
 
-    public get elements(): Array<VertexBufferElement>
+    public get elements(): readonly VertexBufferElement[]
     {
         return this._elements;
     }
@@ -100,65 +75,70 @@ export class VertexBufferLayout
 
 
 
-export default class VertexBuffer implements IDisposable
+export class VertexBuffer
 {
-    private _id: WebGLBuffer | null;
+    private _vbo   : WebGLBuffer | null;
+    private _size  : number;
     private _layout: VertexBufferLayout | null = null;
-    private _len: number;
+    private _mode  : BUFFER_OBJECT_DRAW_MODE;
+    private gl     : WebGL2RenderingContext;
 
-    constructor(vertices: ReadonlyArray<number>)
+    private buffer: Float32Array;
+    
+    constructor(
+        vertices: readonly number[],
+        mode = BUFFER_OBJECT_DRAW_MODE.DYNAMIC
+    )
     {
-        const gl = GL.get();
-        this._id = gl.createBuffer();
+        this.gl = GL.get();
+        this._vbo = this.gl.createBuffer();
+        this._size = vertices.length;
+        this._mode = mode;
 
-        this._len = vertices.length;
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._id);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this._vbo);
+        this.buffer = new Float32Array(vertices);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.buffer, getGLDrawMode(this.gl, mode));
     }
-
 
     public delete(): void
     {
-        GL.get().deleteBuffer(this._id);
+        this.gl.deleteBuffer(this._vbo);
+    }
+
+
+    public setData(vertices: readonly number[]): void
+    {
+        this._size = vertices.length;
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this._vbo);
+
+        this.buffer.set(vertices);
+        this.gl.bufferSubData(this.gl.ARRAY_BUFFER, 0, this.buffer);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+    }
+
+    public resizeAndSetData(vertices: readonly number[]): void
+    {
+        this._size = vertices.length;
+        this.gl.deleteBuffer(this._vbo);
+
+        this._vbo = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this._vbo);
+
+        this.buffer = new Float32Array(vertices);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.buffer, getGLDrawMode(this.gl, this._mode));
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
     }
 
     public bind(): void
     {
-        const gl = GL.get();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._id);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this._vbo);
     }
 
     public unbind(): void
     {
-        const gl = GL.get();
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    }
-
-    public setData(vertices: ReadonlyArray<number>): void
-    {
-        const gl = GL.get();
-        if (vertices.length === this._len)
-        {
-            gl.bindBuffer(gl.ARRAY_BUFFER, this._id);
-
-            gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(vertices));
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        }
-        else
-        {
-            gl.deleteBuffer(this._id);
-
-            this._id = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, this._id);
-
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        }
-
-        this._len = vertices.length;
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
     }
 
     public set layout(layout: VertexBufferLayout)
@@ -171,8 +151,9 @@ export default class VertexBuffer implements IDisposable
         return this._layout;
     }
 
-    public get size()
+    public get size(): number
     {
-        return this._len;
+        return this._size;
     }
 }
+

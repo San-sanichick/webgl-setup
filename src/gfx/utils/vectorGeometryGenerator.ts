@@ -238,14 +238,13 @@ export class VectorDataGenerator
             return this;
         }
 
-        this.getLastVector().push(
-            new Segment(
-                this.lastPoint[0],
-                this.lastPoint[1],
-                x2,
-                y2,
-            )
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            x2,
+            y2,
         );
+        this.getLastVector().push(seg);
 
         this.lastPoint[0] = x2;
         this.lastPoint[1] = y2;
@@ -277,21 +276,18 @@ export class VectorDataGenerator
     public horizontalToRelative(dx: number): this
     {
         const x2 = this.lastPoint[0] + dx;
-        if (
-            this.lastPoint[0] === x2
-        )
+        if (this.lastPoint[0] === x2)
         {
             return this;
         }
-
-        this.getLastVector().push(
-            new Segment(
-                this.lastPoint[0],
-                this.lastPoint[1],
-                x2,
-                this.lastPoint[1],
-            )
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            x2,
+            this.lastPoint[1],
         );
+
+        this.getLastVector().push(seg);
 
         this.lastPoint[0] = x2;
 
@@ -327,14 +323,14 @@ export class VectorDataGenerator
             return this;
         }
 
-        this.getLastVector().push(
-            new Segment(
-                this.lastPoint[0],
-                this.lastPoint[1],
-                this.lastPoint[0],
-                y2,
-            )
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            this.lastPoint[0],
+            y2,
         );
+
+        this.getLastVector().push(seg);
 
         this.lastPoint[1] = y2;
 
@@ -562,16 +558,18 @@ export class VectorDataGenerator
     public close(): this
     {
         const firstSegment = this.getLastVector()[0];
-        this.getLastVector().push(
-            new Segment(
-                this.lastPoint[0],
-                this.lastPoint[1],
-                firstSegment.x1,
-                firstSegment.y1,
-            )
+        const seg = new Segment(
+            this.lastPoint[0],
+            this.lastPoint[1],
+            firstSegment.x1,
+            firstSegment.y1,
         );
 
+        this.getLastVector().push(seg);
+
         this.segments.push([]);
+        this.lastPoint[0] = firstSegment.x1;
+        this.lastPoint[1] = firstSegment.y1;
 
         return this;
     }
@@ -630,9 +628,11 @@ export class VectorDataGenerator
         const Rx = diff * Px + t * Qx;
         const Ry = diff * Py + t * Qy;
 
+        const seg1 = new Segment(x1, y1, Rx, Ry, Lx, Ly, Px, Py);
+        const seg2 = new Segment(Rx, Ry, x2, y2, Qx, Qy, Nx, Ny);
         return [
-            new Segment(x1, y1, Rx, Ry, Lx, Ly, Px, Py),
-            new Segment(Rx, Ry, x2, y2, Qx, Qy, Nx, Ny),
+            seg1,
+            seg2,
         ];
     }
 
@@ -710,6 +710,7 @@ export class VectorDataGenerator
     // 2) Reduce the amount of function calls
     public buildGeometry(): VectorGeometryRow[][]
     {
+        console.log(this.segments);
         const rows: VectorGeometryRow[][] = [];
 
         for (let i = 0; i < this.segments.length; i++)

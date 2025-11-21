@@ -1,16 +1,14 @@
 import GL from "../GL";
 import type { IDisposable } from "@/gfx/utils/types";
-import type Shader from "../shader";
-import type Camera from "../camera/camera";
 
 import VertexArray from "../vertexArray";
-import VertexBuffer from "../vertexBuffer";
+import {VertexBuffer} from "../vertexBuffer";
 import {
-    BufferType,
     VertexBufferElement,
     VertexBufferLayout
 } from "../vertexBuffer";
 import { Matrix3 } from "@/gfx/utils/Matrix3";
+import { BUFFER_TYPE } from "../utils";
 
 
 
@@ -29,8 +27,8 @@ export class Polygon implements IDisposable
         this.len = len;
 
         const layout = new VertexBufferLayout([
-            new VertexBufferElement("a_pos", BufferType.Float2),
-            new VertexBufferElement("a_klm", BufferType.Float3),
+            new VertexBufferElement("a_pos", BUFFER_TYPE.Float2),
+            new VertexBufferElement("a_klm", BUFFER_TYPE.Float3),
         ]);
 
         const vbo = new VertexBuffer(this.vertices);
@@ -40,6 +38,11 @@ export class Polygon implements IDisposable
         this.vao.addVertexBuffer(vbo);
     }
 
+    public setData(vertices: number[], len: number): void
+    {
+        this.len = len;
+        this.vao.setVBOData(vertices, 0);
+    }
 
     public model()
     {

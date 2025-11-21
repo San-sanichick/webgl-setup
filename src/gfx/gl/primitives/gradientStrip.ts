@@ -2,11 +2,12 @@ import GL from "../GL";
 import type { IDisposable } from "@/gfx/utils/types";
 
 import VertexArray from "../vertexArray";
-import VertexBuffer, {
-    BufferType,
+import {
+    VertexBuffer, 
     VertexBufferElement,
     VertexBufferLayout
 } from "../vertexBuffer";
+import { BUFFER_TYPE } from "../utils";
 
 
 
@@ -22,8 +23,8 @@ export class GradientStrip implements IDisposable
     constructor()
     {
         const layout = new VertexBufferLayout([
-            new VertexBufferElement("a_pos", BufferType.Float2),
-            new VertexBufferElement("a_color", BufferType.Float4),
+            new VertexBufferElement("a_pos", BUFFER_TYPE.Float2),
+            new VertexBufferElement("a_color", BUFFER_TYPE.Float4),
         ]);
 
         const vbo = new VertexBuffer(this.vertices);

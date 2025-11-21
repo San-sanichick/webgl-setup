@@ -1,24 +1,27 @@
 import type { IDisposable } from "../utils/types";
 import GL                from "./GL";
 import type IndexBuffer  from "./indexBuffer";
-import type VertexBuffer from "./vertexBuffer";
-import { BufferType, VertexBufferElement, VertexBufferLayout }    from "./vertexBuffer";
+import { BUFFER_TYPE } from "./utils";
+import type { VertexBuffer } from "./vertexBuffer";
+import { VertexBufferElement, VertexBufferLayout }    from "./vertexBuffer";
 
 
 
-export function bufferTypeToGLType(type: BufferType)
+export function bufferTypeToGLType(type: BUFFER_TYPE)
 {
     const gl = GL.get();
     switch (type)
     {
-        case BufferType.Float:
-        case BufferType.Float2:
-        case BufferType.Float3:
-        case BufferType.Float4:
+        case BUFFER_TYPE.Float:
+        case BUFFER_TYPE.Float2:
+        case BUFFER_TYPE.Float3:
+        case BUFFER_TYPE.Float4:
             return gl.FLOAT;
-        case BufferType.Int:
+        case BUFFER_TYPE.Int:
             return gl.INT;
     }
+
+    return 0;
 }
 
 
@@ -63,10 +66,10 @@ export default class VertexArray implements IDisposable
         const gl = GL.get();
         switch (el.type)
         {
-            case BufferType.Float:
-            case BufferType.Float2:
-            case BufferType.Float3:
-            case BufferType.Float4:
+            case BUFFER_TYPE.Float:
+            case BUFFER_TYPE.Float2:
+            case BUFFER_TYPE.Float3:
+            case BUFFER_TYPE.Float4:
             {
                 gl.enableVertexAttribArray(index);
                 gl.vertexAttribPointer(
@@ -79,7 +82,7 @@ export default class VertexArray implements IDisposable
                 );
                 break;
             }
-            case BufferType.Int:
+            case BUFFER_TYPE.Int:
             {
                 gl.enableVertexAttribArray(index);
                 gl.vertexAttribIPointer(
@@ -113,10 +116,10 @@ export default class VertexArray implements IDisposable
             const el = layout.elements[i];
             switch (el.type)
             {
-                case BufferType.Float:
-                case BufferType.Float2:
-                case BufferType.Float3:
-                case BufferType.Float4:
+                case BUFFER_TYPE.Float:
+                case BUFFER_TYPE.Float2:
+                case BUFFER_TYPE.Float3:
+                case BUFFER_TYPE.Float4:
                 {
                     gl.enableVertexAttribArray(this._lastBufferIndex);
                     gl.vertexAttribPointer(
@@ -129,7 +132,7 @@ export default class VertexArray implements IDisposable
                     );
                     break;
                 }
-                case BufferType.Int:
+                case BUFFER_TYPE.Int:
                 {
                     gl.enableVertexAttribArray(this._lastBufferIndex);
                     gl.vertexAttribIPointer(
@@ -157,15 +160,14 @@ export default class VertexArray implements IDisposable
 
         if (vertices.length === vbo.size)
         {
-            vbo.setData(vertices);
+            vbo.setData(vertices)
             return;
         }
 
         const layout = vbo.layout;
         if (!layout) return;
 
-        vbo.setData(vertices);
-        // vbo.resizeAndSetData(vertices);
+        vbo.resizeAndSetData(vertices);
         this.bind();
         vbo.bind();
 

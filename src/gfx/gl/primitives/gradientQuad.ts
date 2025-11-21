@@ -5,11 +5,12 @@ import VertexArray from "../vertexArray";
 import { Matrix3 } from "@/gfx/utils/Matrix3";
 import IndexBuffer from "../indexBuffer";
 
-import VertexBuffer, {
-    BufferType,
+import {
+    VertexBuffer, 
     VertexBufferElement,
     VertexBufferLayout
 } from "../vertexBuffer";
+import { BUFFER_TYPE } from "../utils";
 
 
 
@@ -41,8 +42,8 @@ export class GradientQuad implements IDisposable
         const ib = new IndexBuffer(this._indices);
 
         const layout = new VertexBufferLayout([
-            new VertexBufferElement("a_pos", BufferType.Float2),
-            new VertexBufferElement("a_uv", BufferType.Float2),
+            new VertexBufferElement("a_pos", BUFFER_TYPE.Float2),
+            new VertexBufferElement("a_uv", BUFFER_TYPE.Float2),
         ]);
 
         vb.layout = layout;
