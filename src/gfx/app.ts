@@ -31,13 +31,13 @@ import { GradientGenerator, type GradientStop } from "./gl/gradient/gradientGene
 import Commands from "@/assets/commands.json" with { type: "json" }
 
 
-const frames = Commands as parseSVG.Command[][];
+const frames = Commands as parseSVG.Command[][][];
 
 
 export default class App2D
 {
     private _canvas: HTMLCanvasElement;
-    private _scale: number = 1;
+    private _scale: number = 2.5;
 
 
     constructor(canvas: HTMLCanvasElement, width: number, height: number)
@@ -137,7 +137,7 @@ export default class App2D
             if (e.code === "Escape" || e.code === "KeyQ")
             {
                 cancelAnimationFrame(requestId);
-                // cleanup();
+                // video?.pause();
                 requestId = -1;
                 return;
             }
@@ -155,7 +155,9 @@ export default class App2D
 
             if (e.code === "KeyP")
             {
-                requestAnimationFrame(draw);
+                // video?.play();
+                draw(frametime);
+                // requestAnimationFrame(draw);
             }
 
 
@@ -213,67 +215,80 @@ export default class App2D
         const poly = new Polygon(vertices, len);
         // console.log(frames[725]);
 
-        function buildFrame(commands: parseSVG.Command[])
+        function buildFrame(commands: parseSVG.Command[][])
         {
             gen.reset();
             for (let i = 0; i < commands.length; i++)
             {
-                const command = commands[i];
-
-                switch (command.code)
+                const frame = commands[i];
+                for (let j = 0; j < frame.length; j++)
                 {
-                    case "M":
-                        gen.moveTo(command.x, command.y);
-                        break;
-                    case "m":
-                        gen.moveToRelative(command.x, command.y);
-                        break;
-                    case "L":
-                        gen.lineTo(command.x, command.y);
-                        break;
-                    case "l":
-                        gen.lineToRelative(command.x, command.y);
-                        break;
-                    case "V":
-                        gen.verticalTo(command.y);
-                        break;
-                    case "v":
-                        gen.vertivalToRelative(command.y);
-                        break;
-                    case "H":
-                        gen.horizontalTo(command.x);
-                        break;
-                    case "h":
-                        gen.horizontalToRelative(command.x);
-                        break;
-                    case "C":
-                        gen.cubicTo(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
-                        break;
-                    case "c":
-                        gen.cubicToRelative(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
-                        break;
-                    case "S":
-                        gen.sCubicTo(command.x, command.y, command.x2, command.y2);
-                        break;
-                    case "s":
-                        gen.sCubicToRelative(command.x, command.y, command.x2, command.y2);
-                        break;
-                    case "Q":
-                        gen.quadTo(command.x, command.y, command.x1, command.y1);
-                        break;
-                    case "q":
-                        gen.quadToRelative(command.x, command.y, command.x1, command.y1);
-                        break;
-                    case "T":
-                        gen.tQuadTo(command.x, command.y);
-                        break;
-                    case "t":
-                        gen.tQuadToRelative(command.x, command.y);
-                        break;
-                    case "z":
-                    case "Z":
-                        gen.close();
-                        break;
+                    const command = frame[j];
+                    if (j === 0 && command.code === "m")
+                    {
+                        // HACK: if the SVG has a "path" element, that begins with
+                        // "m" and not "M", that "m" is treated like "M".
+                        // Geometry builder can't really take care of that,
+                        // as it is a geometry builder, not an SVG parser.
+                        // So we just hack it.
+                        command.code = "M";
+                    }
+
+                    switch (command.code)
+                    {
+                        case "M":
+                            gen.moveTo(command.x, command.y);
+                            break;
+                        case "m":
+                            gen.moveToRelative(command.x, command.y);
+                            break;
+                        case "L":
+                            gen.lineTo(command.x, command.y);
+                            break;
+                        case "l":
+                            gen.lineToRelative(command.x, command.y);
+                            break;
+                        case "V":
+                            gen.verticalTo(command.y);
+                            break;
+                        case "v":
+                            gen.vertivalToRelative(command.y);
+                            break;
+                        case "H":
+                            gen.horizontalTo(command.x);
+                            break;
+                        case "h":
+                            gen.horizontalToRelative(command.x);
+                            break;
+                        case "C":
+                            gen.cubicTo(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
+                            break;
+                        case "c":
+                            gen.cubicToRelative(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
+                            break;
+                        case "S":
+                            gen.sCubicTo(command.x, command.y, command.x2, command.y2);
+                            break;
+                        case "s":
+                            gen.sCubicToRelative(command.x, command.y, command.x2, command.y2);
+                            break;
+                        case "Q":
+                            gen.quadTo(command.x, command.y, command.x1, command.y1);
+                            break;
+                        case "q":
+                            gen.quadToRelative(command.x, command.y, command.x1, command.y1);
+                            break;
+                        case "T":
+                            gen.tQuadTo(command.x, command.y);
+                            break;
+                        case "t":
+                            gen.tQuadToRelative(command.x, command.y);
+                            break;
+                        case "z":
+                        case "Z":
+                            gen.close();
+                            break;
+                    }
                 }
             }
 
@@ -313,6 +328,9 @@ export default class App2D
         const gradientStripTexture = GradientGenerator.getTexture();
         gradientGen.generateGradient(gradientStripTexture, stops);
 
+        const video = document.querySelector<HTMLVideoElement>("#video");
+        // video?.pause();
+
         function cleanup()
         {
             gradientStripTexture.delete();
@@ -329,8 +347,6 @@ export default class App2D
 
         const frameCounter = document.querySelector<HTMLDivElement>("#frameCounter")!;
 
-        // buildFrame(frames[547]);
-        // console.log(frames[547])
         const draw = (time: number, frameByFrame?: boolean) =>
         {
             const elapsed = performance.now() - prevTime - 1;
@@ -446,6 +462,8 @@ export default class App2D
                 requestId = requestAnimationFrame(draw);
         }
 
-        draw(0);
+        // video?.play();
+        // video!.muted = false;
+        // draw(frametime);
     }
 }
