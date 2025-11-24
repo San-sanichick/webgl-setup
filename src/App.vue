@@ -37,9 +37,15 @@
         <canvas ref="canvas"></canvas>
 
         <div class="grid grid-rows-2 gap-y-2">
-            <div class="grid grid-rows-2">
+            <div class="grid grid-auto-rows">
                 <span>WASD: move camera</span>
-                <span>Q: stop requestAnimationFrame</span>
+                <span>Escape: stop requestAnimationFrame</span>
+                <span>P: start requestAnimationFrame</span>
+                <div class="grid pt-2 grid-rows-2">
+                    if stopped:
+                    <span class="pl-4">F: step 1 frame forward</span>
+                    <span class="pl-4">B: step 1 frame backward</span>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-x-2 items-center">
