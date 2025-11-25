@@ -37,7 +37,7 @@ const frames = Commands as parseSVG.Command[][][];
 export default class App2D
 {
     private _canvas: HTMLCanvasElement;
-    private _scale: number = 2.5;
+    private _scale: number = 2.6;
 
 
     constructor(canvas: HTMLCanvasElement, width: number, height: number)
@@ -121,6 +121,7 @@ export default class App2D
 
         document.addEventListener("wheel", (e: WheelEvent) =>
         {
+            e.preventDefault();
             const oldScale = this._scale;
             const delta = e.deltaY / 100;
 
