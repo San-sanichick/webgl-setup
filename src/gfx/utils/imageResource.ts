@@ -2,10 +2,10 @@ type ImageChannels = 3 | 4;
 
 export default class ImageResource
 {
-    private _data: ImageData;
+    private _data: HTMLImageElement;
     private _channels: number;
 
-    constructor(data: Readonly<ImageData>, channels: ImageChannels)
+    constructor(data: Readonly<HTMLImageElement>, channels: ImageChannels)
     {
         this._data     = data;
         this._channels = channels;
@@ -26,7 +26,7 @@ export default class ImageResource
         return this._channels;
     }
 
-    public get data(): Readonly<ImageData>
+    public get data(): Readonly<HTMLImageElement>
     {
         return this._data;
     }
