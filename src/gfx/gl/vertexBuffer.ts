@@ -120,9 +120,7 @@ export class VertexBuffer
     public resizeAndSetData(vertices: readonly number[]): void
     {
         this._size = vertices.length;
-        this.gl.deleteBuffer(this._vbo);
 
-        this._vbo = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this._vbo);
 
         this.buffer = new Float32Array(vertices);

@@ -214,7 +214,7 @@ export default class App2D
         const rows = gen.buildGeometry();
         const [vertices, len] = triangulateVectorGeometryFromData(rows);
         const poly = new Polygon(vertices, len);
-        // console.log(frames[725]);
+
 
         function buildFrame(commands: parseSVG.Command[][])
         {
@@ -329,7 +329,7 @@ export default class App2D
         const gradientStripTexture = GradientGenerator.getTexture();
         gradientGen.generateGradient(gradientStripTexture, stops);
 
-        const video = document.querySelector<HTMLVideoElement>("#video");
+        // const video = document.querySelector<HTMLVideoElement>("#video");
         // video?.pause();
 
         function cleanup()
