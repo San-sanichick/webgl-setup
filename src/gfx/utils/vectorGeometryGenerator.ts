@@ -38,6 +38,7 @@ class Segment
     public cy2?: number;
 
     public flip = false;
+    public split = false;
 
 
     constructor(
@@ -666,6 +667,8 @@ export class VectorDataGenerator
             );
 
             segments[1].flip = true;
+            segments[0].split = true;
+            segments[1].split = true;
 
             vector.splice(segmentIndex + 1, 0, ...segments);
 
@@ -676,6 +679,7 @@ export class VectorDataGenerator
 
             this.segments.splice(vectorIndex + 1, 0, triangle);
 
+            console.log("BRO WE SPLIT");
             return true;
         }
 
@@ -690,6 +694,8 @@ export class VectorDataGenerator
             );
 
             segments[0].flip = true;
+            segments[0].split = true;
+            segments[1].split = true;
 
             vector.splice(segmentIndex + 1, 0, ...segments);
 
@@ -699,6 +705,8 @@ export class VectorDataGenerator
             ];
 
             this.segments.splice(vectorIndex + 1, 0, triangle);
+
+            console.log("BRO WE SPLIT");
             return true;
         }
 
@@ -793,14 +801,7 @@ export class VectorDataGenerator
                         // get curve type
                         const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
                         console.log("======");
-                        if (segment.x1 === 5.1125 && segment.y1 === 15.539)
-                        {
-                            console.log(CubicType[cubicType]);
-                        }
-                        // if (segment.x2 === 5.1125 && segment.y2 === 15.539)
-                        // {
-                        //     console.log(CubicType[cubicType]);
-                        // }
+                        console.log(CubicType[cubicType], segment.flip, segment.x1, segment.y1, segment.x2, segment.y2);
 
                         // this is to determine if we are convex or concave
                         let kSign = 1;
@@ -908,6 +909,7 @@ export class VectorDataGenerator
 
                                 let ratio1 = td / sd;
                                 let ratio2 = te / se;
+                                console.log(ratio1, ratio2);
 
                                 if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
                                     continue;
@@ -936,43 +938,30 @@ export class VectorDataGenerator
 
 
                                 const h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
+                                const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
+                                console.log(h1, h2);
 
                                 // NOTE: All of this is just guess work
-                                console.log(this.segments[i][j - 1]?.flip, segment.flip)
-                                if (segment.flip && (d1 * h1 >= EPSILON))
+                                const d13 = d1 * d1 * d1;
+                                const alpha1 = Math.abs(HESSIAN_COEFF * d13 * h1);
+                                const alpha2 = Math.abs(HESSIAN_COEFF * d13 * h2);
+                                const alpha = Math.max(alpha1, alpha2);
+
+                                if (Math.abs(alpha) < BIG_EPSILON)
                                 {
                                     kSign = 1;
                                     lSign = 1;
                                 }
-                                else if (!segment.flip && this.segments[i][j + 1]?.flip)
-                                {
-                                    kSign = -1;
-                                    lSign = -1;
-                                }
                                 else
                                 {
-                                    const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
+                                    kSign = Math.sign(alpha);
+                                    lSign = Math.sign(alpha);
+                                }
 
-                                    const d13 = d1 * d1 * d1;
-                                    const alpha1 = HESSIAN_COEFF * d13 * h1;
-                                    const alpha2 = HESSIAN_COEFF * d13 * h2;
-                                    const alpha = Math.max(alpha1, alpha2);
-
-                                    // if ((d1 * h1 >= EPSILON))
-                                    // {
-                                    //     kSign = -1;
-                                    //     lSign = -1;
-                                    // }
-                                    if (Math.abs(alpha) < EPSILON)
-                                    {
-                                        kSign = 1;
-                                        lSign = 1;
-                                    }
-                                    else
-                                    {
-                                        kSign = Math.sign(alpha) || 1;
-                                        lSign = Math.sign(alpha) || 1;
-                                    }
+                                if (segment.split && this.segments[i][j + 1] && !this.segments[i][j + 1].split)
+                                {
+                                    kSign *= -1;
+                                    lSign *= -1;
                                 }
 
                                 break;
