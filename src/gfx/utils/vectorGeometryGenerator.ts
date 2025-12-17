@@ -9,7 +9,8 @@ import {
 
 
 
-const EPSILON = 1e-5;
+const EPSILON = 0.5e-11;
+const BIG_EPSILON = 1e-5;
 
 const CURVE_CONVERSION_COEFF = 2 / 3;
 const HESSIAN_COEFF = 32 / 3;
@@ -138,7 +139,7 @@ const F = new Matrix4();
 
 function boundsCheck(val: number, start: number, end: number): boolean
 {
-    return val >= EPSILON && (end - val) >= EPSILON && val > start && val < end;
+    return val >= BIG_EPSILON && (end - val) >= BIG_EPSILON && val > start && val < end;
 }
 
 
@@ -791,6 +792,15 @@ export class VectorDataGenerator
 
                         // get curve type
                         const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
+                        console.log("======");
+                        if (segment.x1 === 5.1125 && segment.y1 === 15.539)
+                        {
+                            console.log(CubicType[cubicType]);
+                        }
+                        // if (segment.x2 === 5.1125 && segment.y2 === 15.539)
+                        // {
+                        //     console.log(CubicType[cubicType]);
+                        // }
 
                         // this is to determine if we are convex or concave
                         let kSign = 1;
@@ -856,15 +866,25 @@ export class VectorDataGenerator
                                 else
                                 {
                                     // NOTE: this might break, but right now this works
-                                    if (Math.abs(d1) <= EPSILON || d3 > 0 || d1 === d2)
+                                    if (
+                                        Math.abs(d1) <= EPSILON ||
+                                        d3 > 0 ||
+                                        Math.abs(d2 - d1) <= EPSILON ||
+                                        Math.abs(d3 - d1) <= EPSILON
+                                    )
                                     {
-                                        kSign = 1;
-                                        lSign = 1;
+                                        kSign = -1;
+                                        lSign = -1;
                                     }
                                     else
                                     {
                                         kSign = Math.sign(d1);
                                         lSign = Math.sign(d1);
+                                        if (Math.abs(d3 - d2) <= EPSILON)
+                                        {
+                                            kSign *= -1;
+                                            lSign *= -1;
+                                        }
                                     }
                                 }
 
@@ -918,21 +938,32 @@ export class VectorDataGenerator
                                 const h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
 
                                 // NOTE: All of this is just guess work
-                                if (segment.flip && Math.abs(d1 * h1) >= 0)
+                                console.log(this.segments[i][j - 1]?.flip, segment.flip)
+                                if (segment.flip && (d1 * h1 >= EPSILON))
+                                {
+                                    kSign = 1;
+                                    lSign = 1;
+                                }
+                                else if (!segment.flip && this.segments[i][j + 1]?.flip)
                                 {
                                     kSign = -1;
                                     lSign = -1;
                                 }
                                 else
                                 {
-                                    const d13 = d1 * d1 * d1;
                                     const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
 
+                                    const d13 = d1 * d1 * d1;
                                     const alpha1 = HESSIAN_COEFF * d13 * h1;
                                     const alpha2 = HESSIAN_COEFF * d13 * h2;
                                     const alpha = Math.max(alpha1, alpha2);
 
-                                    if (alpha <= EPSILON)
+                                    // if ((d1 * h1 >= EPSILON))
+                                    // {
+                                    //     kSign = -1;
+                                    //     lSign = -1;
+                                    // }
+                                    if (Math.abs(alpha) < EPSILON)
                                     {
                                         kSign = 1;
                                         lSign = 1;
