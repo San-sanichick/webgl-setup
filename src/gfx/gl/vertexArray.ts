@@ -168,17 +168,6 @@ export default class VertexArray implements IDisposable
         if (!layout) return;
 
         vbo.resizeAndSetData(vertices);
-        this.bind();
-        vbo.bind();
-
-        for (let i = 0; i < layout.elements.length; i++)
-        {
-            const el = layout.elements[i];
-            this.setBufferLayout(layout, el, i);
-        }
-
-        vbo.unbind();
-        this.unbind();
     }
 
 

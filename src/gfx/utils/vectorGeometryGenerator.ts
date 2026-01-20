@@ -136,6 +136,7 @@ enum CubicType
 
 
 const F = new Matrix4();
+let M = new Array<number>(12);
 
 
 function boundsCheck(val: number, start: number, end: number): boolean
@@ -799,8 +800,26 @@ export class VectorDataGenerator
                         // ---
 
                         // get curve type
-                        const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
                         console.log("======");
+                        let cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
+
+                        // if (segment.x1 === 5.125 && segment.y1 === 16.1843)
+                        // {
+                        //     console.log("REPLACED");
+                        //     cubicType = CubicType.CUSP2;
+                        // }
+                        //
+                        // if (segment.x1 === 6.15 && segment.y1 === 17.5601)
+                        // {
+                        //     console.log("REPLACED");
+                        //     cubicType = CubicType.LOOP;
+                        // }
+                        //
+                        // if (segment.x1 === 5.1125 && segment.y1 === 15.539)
+                        // {
+                        //     console.log("REPLACED");
+                        //     cubicType = CubicType.CUSP2;
+                        // }
                         console.log(CubicType[cubicType], segment.flip, segment.x1, segment.y1, segment.x2, segment.y2);
 
                         // this is to determine if we are convex or concave
@@ -833,8 +852,8 @@ export class VectorDataGenerator
                                 let ratio1 = tl / sl;
                                 let ratio2 = tm / sm;
 
-                                if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
-                                    continue;
+                                // if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
+                                //     continue;
 
                                 const m00 = tl * tm;
                                 const m01 = tl * tl * tl;
@@ -858,36 +877,43 @@ export class VectorDataGenerator
                                       0, m31, m32, 0,
                                 );
 
-                                // HACK: this is just a shot in the dark
-                                if (segment.flip)
+                                M = mult4x4Fast(F.elements, MI3.elements);
+
+                                if (Math.abs(d1) > EPSILON && d1 < 0)
                                 {
-                                    kSign = 1;
-                                    lSign = 1;
+                                    kSign = -1;
+                                    lSign = -1;
                                 }
-                                else
-                                {
-                                    // NOTE: this might break, but right now this works
-                                    if (
-                                        Math.abs(d1) <= EPSILON ||
-                                        d3 > 0 ||
-                                        Math.abs(d2 - d1) <= EPSILON ||
-                                        Math.abs(d3 - d1) <= EPSILON
-                                    )
-                                    {
-                                        kSign = -1;
-                                        lSign = -1;
-                                    }
-                                    else
-                                    {
-                                        kSign = Math.sign(d1);
-                                        lSign = Math.sign(d1);
-                                        if (Math.abs(d3 - d2) <= EPSILON)
-                                        {
-                                            kSign *= -1;
-                                            lSign *= -1;
-                                        }
-                                    }
-                                }
+                                // // HACK: this is just a shot in the dark
+                                // if (segment.flip)
+                                // {
+                                //     kSign = 1;
+                                //     lSign = 1;
+                                // }
+                                // else
+                                // {
+                                //     // NOTE: this might break, but right now this works
+                                //     if (
+                                //         Math.abs(d1) <= EPSILON ||
+                                //         d3 > 0 ||
+                                //         Math.abs(d2 - d1) <= EPSILON ||
+                                //         Math.abs(d3 - d1) <= EPSILON
+                                //     )
+                                //     {
+                                //         kSign = -1;
+                                //         lSign = -1;
+                                //     }
+                                //     else
+                                //     {
+                                //         kSign = Math.sign(d1);
+                                //         lSign = Math.sign(d1);
+                                //         if (Math.abs(d3 - d2) <= EPSILON)
+                                //         {
+                                //             kSign *= -1;
+                                //             lSign *= -1;
+                                //         }
+                                //     }
+                                // }
 
                                 break;
                             }
@@ -936,33 +962,44 @@ export class VectorDataGenerator
                                       0, m31, m32, 0,
                                 );
 
+                                M = mult4x4Fast(F.elements, MI3.elements);
 
                                 const h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
                                 const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
-                                console.log(h1, h2);
+                                let h = h1;
+
+                                if (Math.abs(h2) > Math.abs(h1))
+                                {
+                                    h = h2;
+                                }
+                                // console.log(h1, h2);
 
                                 // NOTE: All of this is just guess work
                                 const d13 = d1 * d1 * d1;
-                                const alpha1 = Math.abs(HESSIAN_COEFF * d13 * h1);
-                                const alpha2 = Math.abs(HESSIAN_COEFF * d13 * h2);
-                                const alpha = Math.max(alpha1, alpha2);
+                                const alpha = HESSIAN_COEFF * d13 * h;
 
-                                if (Math.abs(alpha) < BIG_EPSILON)
+                                if (Math.abs(alpha) > EPSILON && alpha > 0)
                                 {
-                                    kSign = 1;
-                                    lSign = 1;
-                                }
-                                else
-                                {
-                                    kSign = Math.sign(alpha);
-                                    lSign = Math.sign(alpha);
+                                    kSign = -1;
+                                    lSign = -1;
                                 }
 
-                                if (segment.split && this.segments[i][j + 1] && !this.segments[i][j + 1].split)
-                                {
-                                    kSign *= -1;
-                                    lSign *= -1;
-                                }
+                                // if (Math.abs(alpha) < BIG_EPSILON)
+                                // {
+                                //     kSign = 1;
+                                //     lSign = 1;
+                                // }
+                                // else
+                                // {
+                                //     kSign = Math.sign(alpha);
+                                //     lSign = Math.sign(alpha);
+                                // }
+                                //
+                                // if (segment.split && this.segments[i][j + 1] && !this.segments[i][j + 1].split)
+                                // {
+                                //     kSign *= -1;
+                                //     lSign *= -1;
+                                // }
 
                                 break;
                             }
@@ -974,10 +1011,10 @@ export class VectorDataGenerator
                                 tl /= l;
                                 sl /= l;
 
-                                const ratio = tl / sl;
-
-                                if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
-                                    continue;
+                                // const ratio = tl / sl;
+                                //
+                                // if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
+                                //     continue;
 
                                 const m00 = tl;
                                 const m01 = tl * tl * tl;
@@ -992,6 +1029,8 @@ export class VectorDataGenerator
                                       0, m21, 0, 0,
                                       0, m31, 0, 0,
                                 );
+
+                                M = mult4x4Fast(F.elements, MI3.elements);
 
                                 // HACK: not certain this works correctly
                                 if (segment.flip)
@@ -1071,23 +1110,21 @@ export class VectorDataGenerator
                                 continue;
                             }
 
-                            const res = mult4x4Fast(F.elements, MI3.elements);
+                            k1 = kSign * M[0];
+                            l1 = lSign * M[1];
+                            m1 = M[2];
 
-                            k1 = kSign * res[0];
-                            l1 = lSign * res[1];
-                            m1 = res[2];
+                            k2 = kSign * M[4];
+                            l2 = lSign * M[5];
+                            m2 = M[6];
 
-                            k2 = kSign * res[4];
-                            l2 = lSign * res[5];
-                            m2 = res[6];
+                            k3 = kSign * M[8];
+                            l3 = lSign * M[9];
+                            m3 = M[10];
 
-                            k3 = kSign * res[8];
-                            l3 = lSign * res[9];
-                            m3 = res[10];
-
-                            k4 = kSign * res[12];
-                            l4 = lSign * res[13];
-                            m4 = res[14];
+                            k4 = kSign * M[12];
+                            l4 = lSign * M[13];
+                            m4 = M[14];
                         }
 
                         rows.push(

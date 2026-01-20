@@ -56,7 +56,7 @@ export class GradientQuad implements IDisposable
         this._paintTransform
             .identity()
             // .translate(-0.25, 0)
-            .scale(1, 1);
+            .scale(2, 4);
     }
 
     public delete(): void
@@ -82,7 +82,7 @@ export class GradientQuad implements IDisposable
 
         const gl = GL.get();
         gl.drawElements(
-            gl.TRIANGLES,
+            gl.TRIANGLE_STRIP,
             this.vao.getIndexBuffer()!.count,
             gl.UNSIGNED_INT,
             0
