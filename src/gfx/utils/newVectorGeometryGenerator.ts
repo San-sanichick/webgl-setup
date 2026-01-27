@@ -880,12 +880,12 @@ export class VectorDataGenerator
                             M[10] = -ltls * ltls * mtms;
                             M[11] = -ltls * mtms * mtms;
 
-                            if (Math.abs(d1) > EPSILON && d1 > 0 && Math.abs(M[0]) > EPSILON && Math.sign(M[0]) < 0)
+                            if (Math.abs(d1) > EPSILON && d1 > 0 && Math.abs(M[3]) > EPSILON && Math.sign(M[3]) < 0)
                             {
                                 flip = true;
                             }
 
-                            if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[0]) > 0 && Math.sign(M[0]) > 0)
+                            if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[3]) > EPSILON && Math.sign(M[3]) > 0)
                             {
                                 flip = true;
                             }

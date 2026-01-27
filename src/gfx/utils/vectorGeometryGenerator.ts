@@ -584,14 +584,15 @@ export class VectorDataGenerator
         if (Math.abs(d1) >= EPSILON)
         {
             const eq = (3 * d2 * d2 - 4 * d1 * d3);
+
+            if (Math.abs(eq) <= EPSILON)
+                return CubicType.CUSP1;
+
             if (eq > 0)
                 return CubicType.SERPENTINE;
 
             if (eq < 0)
                 return CubicType.LOOP;
-
-            if (eq === 0)
-                return CubicType.CUSP1;
         }
 
         if (Math.abs(d1) <= EPSILON && Math.abs(d2) >= EPSILON)
@@ -680,7 +681,6 @@ export class VectorDataGenerator
 
             this.segments.splice(vectorIndex + 1, 0, triangle);
 
-            console.log("BRO WE SPLIT");
             return true;
         }
 
@@ -707,7 +707,6 @@ export class VectorDataGenerator
 
             this.segments.splice(vectorIndex + 1, 0, triangle);
 
-            console.log("BRO WE SPLIT");
             return true;
         }
 
@@ -751,9 +750,6 @@ export class VectorDataGenerator
 
                     if (segment.isCubic())
                     {
-                        // NOTE: I am going to inline EVERYTHING,
-                        // because performance
-
                         // --- get power basis
                         const B = [
                             segment.x1  , segment.y1  , 1,
@@ -782,45 +778,32 @@ export class VectorDataGenerator
                         // ---
 
                         // --- calculate determinants
-                        const d1 = -determinant3x3(
+                        let d1 = -determinant3x3(
                             x4, y4, w4,
                             x3, y3, w3,
                             x1, y1, w1,
                         );
-                        const d2 = determinant3x3(
+                        let d2 = determinant3x3(
                             x4, y4, w4,
                             x2, y2, w2,
                             x1, y1, w1,
                         );
-                        const d3 = -determinant3x3(
+                        let d3 = -determinant3x3(
                             x3, y3, w3,
                             x2, y2, w2,
                             x1, y1, w1,
                         );
+
+                        const l = Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
+                        d1 /= l;
+                        d2 /= l;
+                        d3 /= l;
                         // ---
 
                         // get curve type
-                        console.log("======");
                         let cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
 
-                        // if (segment.x1 === 5.125 && segment.y1 === 16.1843)
-                        // {
-                        //     console.log("REPLACED");
-                        //     cubicType = CubicType.CUSP2;
-                        // }
-                        //
-                        // if (segment.x1 === 6.15 && segment.y1 === 17.5601)
-                        // {
-                        //     console.log("REPLACED");
-                        //     cubicType = CubicType.LOOP;
-                        // }
-                        //
-                        // if (segment.x1 === 5.1125 && segment.y1 === 15.539)
-                        // {
-                        //     console.log("REPLACED");
-                        //     cubicType = CubicType.CUSP2;
-                        // }
-                        console.log(CubicType[cubicType], segment.flip, segment.x1, segment.y1, segment.x2, segment.y2);
+                        // console.log(CubicType[cubicType], segment.flip, segment.x1, segment.y1, segment.x2, segment.y2);
 
                         // this is to determine if we are convex or concave
                         let kSign = 1;
@@ -849,26 +832,20 @@ export class VectorDataGenerator
                                 tm /= l2;
                                 sm /= l2;
 
-                                let ratio1 = tl / sl;
-                                let ratio2 = tm / sm;
-
-                                // if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
-                                //     continue;
-
                                 const m00 = tl * tm;
                                 const m01 = tl * tl * tl;
                                 const m02 = tm * tm * tm;
 
-                                const m10 = -sm * tl - sl * tm;
-                                const m11 = -3 * sl * tl * tl;
-                                const m12 = -3 * sm * tm * tm;
+                                const m10 = -(sm * tl) - (sl * tm);
+                                const m11 = -(3 * sl * tl * tl);
+                                const m12 = -(3 * sm * tm * tm);
 
                                 const m20 = sl * sm;
                                 const m21 = 3 * sl * sl * tl;
                                 const m22 = 3 * sm * sm * tm;
 
-                                const m31 = -sl * sl * sl;
-                                const m32 = -sm * sm * sm;
+                                const m31 = -(sl * sl * sl);
+                                const m32 = -(sm * sm * sm);
 
                                 F.set(
                                     m00, m01, m02, 1,
@@ -884,36 +861,6 @@ export class VectorDataGenerator
                                     kSign = -1;
                                     lSign = -1;
                                 }
-                                // // HACK: this is just a shot in the dark
-                                // if (segment.flip)
-                                // {
-                                //     kSign = 1;
-                                //     lSign = 1;
-                                // }
-                                // else
-                                // {
-                                //     // NOTE: this might break, but right now this works
-                                //     if (
-                                //         Math.abs(d1) <= EPSILON ||
-                                //         d3 > 0 ||
-                                //         Math.abs(d2 - d1) <= EPSILON ||
-                                //         Math.abs(d3 - d1) <= EPSILON
-                                //     )
-                                //     {
-                                //         kSign = -1;
-                                //         lSign = -1;
-                                //     }
-                                //     else
-                                //     {
-                                //         kSign = Math.sign(d1);
-                                //         lSign = Math.sign(d1);
-                                //         if (Math.abs(d3 - d2) <= EPSILON)
-                                //         {
-                                //             kSign *= -1;
-                                //             lSign *= -1;
-                                //         }
-                                //     }
-                                // }
 
                                 break;
                             }
@@ -935,10 +882,12 @@ export class VectorDataGenerator
 
                                 let ratio1 = td / sd;
                                 let ratio2 = te / se;
-                                console.log(ratio1, ratio2);
 
                                 if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
+                                {
+                                    this.segments.splice(i, 1);
                                     continue;
+                                }
 
                                 const m00 = td * te;
                                 const m01 = td * td * te;
@@ -964,42 +913,27 @@ export class VectorDataGenerator
 
                                 M = mult4x4Fast(F.elements, MI3.elements);
 
-                                const h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
-                                const h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
+
+                                let h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
+                                let h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
+
+                                if (Math.abs(h1) <= EPSILON) h1 = 0;
+                                if (Math.abs(h2) <= EPSILON) h2 = 0;
                                 let h = h1;
 
                                 if (Math.abs(h2) > Math.abs(h1))
                                 {
                                     h = h2;
                                 }
-                                // console.log(h1, h2);
 
-                                // NOTE: All of this is just guess work
                                 const d13 = d1 * d1 * d1;
                                 const alpha = HESSIAN_COEFF * d13 * h;
 
-                                if (Math.abs(alpha) > EPSILON && alpha > 0)
+                                if (alpha > 0)
                                 {
                                     kSign = -1;
                                     lSign = -1;
                                 }
-
-                                // if (Math.abs(alpha) < BIG_EPSILON)
-                                // {
-                                //     kSign = 1;
-                                //     lSign = 1;
-                                // }
-                                // else
-                                // {
-                                //     kSign = Math.sign(alpha);
-                                //     lSign = Math.sign(alpha);
-                                // }
-                                //
-                                // if (segment.split && this.segments[i][j + 1] && !this.segments[i][j + 1].split)
-                                // {
-                                //     kSign *= -1;
-                                //     lSign *= -1;
-                                // }
 
                                 break;
                             }
@@ -1010,11 +944,6 @@ export class VectorDataGenerator
                                 const l = Math.sqrt(tl * tl + sl * sl);
                                 tl /= l;
                                 sl /= l;
-
-                                // const ratio = tl / sl;
-                                //
-                                // if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
-                                //     continue;
 
                                 const m00 = tl;
                                 const m01 = tl * tl * tl;
@@ -1032,17 +961,17 @@ export class VectorDataGenerator
 
                                 M = mult4x4Fast(F.elements, MI3.elements);
 
-                                // HACK: not certain this works correctly
-                                if (segment.flip)
-                                {
-                                    kSign = Math.sign(d2);
-                                    lSign = Math.sign(d2);
-                                }
-                                else
-                                {
-                                    kSign = -Math.sign(d2);
-                                    lSign = -Math.sign(d2);
-                                }
+                                // // HACK: not certain this works correctly
+                                // if (segment.flip)
+                                // {
+                                //     kSign = Math.sign(d2);
+                                //     lSign = Math.sign(d2);
+                                // }
+                                // else
+                                // {
+                                //     kSign = -Math.sign(d2);
+                                //     lSign = -Math.sign(d2);
+                                // }
 
                                 break;
                             }
@@ -1098,8 +1027,6 @@ export class VectorDataGenerator
                         {
                             if (cubicType === CubicType.LINE)
                             {
-                                // removes redundant triangulation
-                                // (probably a rare case)
                                 rows.push(
                                     [
                                         [segment.x1, segment.y1, 0, 0, 0],
