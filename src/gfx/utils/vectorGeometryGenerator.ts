@@ -9,11 +9,10 @@ import {
 
 
 
-const EPSILON = 0.5e-11;
+const EPSILON = 0.5e-11; // this is a bit overkill
 const BIG_EPSILON = 1e-5;
 
 const CURVE_CONVERSION_COEFF = 2 / 3;
-const HESSIAN_COEFF = 32 / 3;
 
 const QUAD_K2 = 1 / 3;
 const QUAD_K3 = 2 / 3;
@@ -38,7 +37,6 @@ class Segment
     public cy2?: number;
 
     public flip = false;
-    public split = false;
 
 
     constructor(
@@ -150,6 +148,7 @@ function boundsCheck(val: number, start: number, end: number): boolean
 /**
  * @see C. Loop & J. Blinn - Resolution Independent Curve Rendering
  * using Programmable Graphics Hardware
+ * @see https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-25-rendering-vector-art-gpu
  */
 export class VectorDataGenerator
 {
@@ -283,6 +282,7 @@ export class VectorDataGenerator
         {
             return this;
         }
+
         const seg = new Segment(
             this.lastPoint[0],
             this.lastPoint[1],
@@ -388,6 +388,7 @@ export class VectorDataGenerator
         const prev = this.getLastVector().at(-1);
         let cx = this.lastPoint[0];
         let cy = this.lastPoint[1];
+
         if (prev && prev.isQuadratic())
         {
             cx = 2 * this.lastPoint[0] - prev.cx1!;
@@ -418,6 +419,7 @@ export class VectorDataGenerator
         const prev = this.getLastVector().at(-1);
         let cx = this.lastPoint[0];
         let cy = this.lastPoint[1];
+
         if (prev && prev.isQuadratic())
         {
             cx = 2 * this.lastPoint[0] - prev.cx1!;
@@ -497,6 +499,7 @@ export class VectorDataGenerator
         const prev = this.getLastVector().at(-1);
         let cx1 = this.lastPoint[0];
         let cy1 = this.lastPoint[1];
+
         if (prev && prev.isCubic())
         {
             cx1 = 2 * this.lastPoint[0] - prev.cx2!;
@@ -532,6 +535,7 @@ export class VectorDataGenerator
         const prev = this.getLastVector().at(-1);
         let cx1 = this.lastPoint[0];
         let cy1 = this.lastPoint[1];
+
         if (prev && prev.isCubic())
         {
             cx1 = 2 * this.lastPoint[0] - prev.cx2!;
@@ -669,8 +673,6 @@ export class VectorDataGenerator
             );
 
             segments[1].flip = true;
-            segments[0].split = true;
-            segments[1].split = true;
 
             vector.splice(segmentIndex + 1, 0, ...segments);
 
@@ -695,8 +697,6 @@ export class VectorDataGenerator
             );
 
             segments[0].flip = true;
-            segments[0].split = true;
-            segments[1].split = true;
 
             vector.splice(segmentIndex + 1, 0, ...segments);
 
@@ -714,9 +714,6 @@ export class VectorDataGenerator
     }
 
 
-    // TODO: Several optimizations to look into:
-    // 1) Use ObjectPool to reduce allocations (big one)
-    // 2) Reduce the amount of function calls
     public buildGeometry(): VectorGeometryRow[][]
     {
         const rows: VectorGeometryRow[][] = [];
@@ -733,8 +730,6 @@ export class VectorDataGenerator
                 {
                     const segment = vector[j];
 
-                    // NOTE: Figma uses 0.5 for k, l and m for line segments.
-                    // For some reason for us it doesn't work, so we use 0 instead
                     row.push([segment.x1, segment.y1, 0, 0, 0]);
                     row.push([segment.x2, segment.y2, 0, 0, 0]);
                 }
@@ -747,325 +742,344 @@ export class VectorDataGenerator
                 {
                     const segment = vector[j];
                     if (segment.isLine()) continue;
+                    if (!segment.isCubic()) continue;
 
-                    if (segment.isCubic())
+                    // --- get power basis
+                    const B = [
+                        segment.x1  , segment.y1  , 1,
+                        segment.cx1!, segment.cy1!, 1,
+                        segment.cx2!, segment.cy2!, 1,
+                        segment.x2  , segment.y2  , 1,
+                    ];
+
+                    const out = multiply4x4By3x4(M3.elements, B);
+
+                    const x1 = out[0];
+                    const y1 = out[1];
+                    const w1 = out[2];
+
+                    const x2 = out[3];
+                    const y2 = out[4];
+                    const w2 = out[5];
+
+                    const x3 = out[6];
+                    const y3 = out[7];
+                    const w3 = out[8];
+
+                    const x4 = out[9];
+                    const y4 = out[10];
+                    const w4 = out[11];
+                    // ---
+
+                    // --- calculate determinants
+                    let d1 = -determinant3x3(
+                        x4, y4, w4,
+                        x3, y3, w3,
+                        x1, y1, w1,
+                    );
+                    let d2 = determinant3x3(
+                        x4, y4, w4,
+                        x2, y2, w2,
+                        x1, y1, w1,
+                    );
+                    let d3 = -determinant3x3(
+                        x3, y3, w3,
+                        x2, y2, w2,
+                        x1, y1, w1,
+                    );
+
+                    const l = Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
+                    d1 /= l;
+                    d2 /= l;
+                    d3 /= l;
+                    // ---
+
+                    // get curve type
+                    let cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
+
+                    // console.log(CubicType[cubicType], segment.flip, segment.x1, segment.y1, segment.x2, segment.y2);
+
+                    let kSign = 1;
+                    let lSign = 1;
+
+                    // --- calculate F
+                    switch(cubicType)
                     {
-                        // --- get power basis
-                        const B = [
-                            segment.x1  , segment.y1  , 1,
-                            segment.cx1!, segment.cy1!, 1,
-                            segment.cx2!, segment.cy2!, 1,
-                            segment.x2  , segment.y2  , 1,
-                        ];
-
-                        const out = multiply4x4By3x4(M3.elements, B);
-
-                        const x1 = out[0];
-                        const y1 = out[1];
-                        const w1 = out[2];
-
-                        const x2 = out[3];
-                        const y2 = out[4];
-                        const w2 = out[5];
-
-                        const x3 = out[6];
-                        const y3 = out[7];
-                        const w3 = out[8];
-
-                        const x4 = out[9];
-                        const y4 = out[10];
-                        const w4 = out[11];
-                        // ---
-
-                        // --- calculate determinants
-                        let d1 = -determinant3x3(
-                            x4, y4, w4,
-                            x3, y3, w3,
-                            x1, y1, w1,
-                        );
-                        let d2 = determinant3x3(
-                            x4, y4, w4,
-                            x2, y2, w2,
-                            x1, y1, w1,
-                        );
-                        let d3 = -determinant3x3(
-                            x3, y3, w3,
-                            x2, y2, w2,
-                            x1, y1, w1,
-                        );
-
-                        const l = Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
-                        d1 /= l;
-                        d2 /= l;
-                        d3 /= l;
-                        // ---
-
-                        // get curve type
-                        let cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
-
-                        // console.log(CubicType[cubicType], segment.flip, segment.x1, segment.y1, segment.x2, segment.y2);
-
-                        // this is to determine if we are convex or concave
-                        let kSign = 1;
-                        let lSign = 1;
-
-                        // --- calculate F
-                        switch(cubicType)
+                        // these two cases work out to be the same, mathematically
+                        case CubicType.CUSP1:
+                        case CubicType.SERPENTINE:
                         {
-                            // these two cases work out to be the same,
-                            // mathematically
-                            case CubicType.CUSP1:
-                            case CubicType.SERPENTINE:
+                            const sqrt13 = 1 / Math.sqrt(3);
+                            const sqrt = Math.sqrt(3 * d2 * d2 - 4 * d1 * d3);
+
+                            let tl = d2 + (sqrt13 * sqrt);
+                            let sl = 2 * d1;
+                            const l1 = Math.sqrt(tl * tl + sl * sl);
+                            tl /= l1;
+                            sl /= l1;
+
+                            let tm = d2 - (sqrt13 * sqrt);
+                            let sm = 2 * d1;
+                            const l2 = Math.sqrt(tm * tm + sm * sm);
+                            tm /= l2;
+                            sm /= l2;
+
+                            let ratio1 = tl / sl;
+                            let ratio2 = tm / sm;
+
+                            // NOTE: 2005 article AND GPU Gems only mention subdivision of
+                            // curves in the context of Loops and their artifacts.
+                            // But other curves might also need to be subdivided
+                            // from what I've found
+                            if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
                             {
-                                const sqrt13 = 1 / Math.sqrt(3);
-                                const sqrt = Math.sqrt(3 * d2 * d2 - 4 * d1 * d3);
-
-                                let tl = d2 + (sqrt13 * sqrt);
-                                let sl = 2 * d1;
-                                const l1 = Math.sqrt(tl * tl + sl * sl);
-                                tl /= l1;
-                                sl /= l1;
-
-                                let tm = d2 - (sqrt13 * sqrt);
-                                let sm = 2 * d1;
-                                const l2 = Math.sqrt(tm * tm + sm * sm);
-                                tm /= l2;
-                                sm /= l2;
-
-                                const m00 = tl * tm;
-                                const m01 = tl * tl * tl;
-                                const m02 = tm * tm * tm;
-
-                                const m10 = -(sm * tl) - (sl * tm);
-                                const m11 = -(3 * sl * tl * tl);
-                                const m12 = -(3 * sm * tm * tm);
-
-                                const m20 = sl * sm;
-                                const m21 = 3 * sl * sl * tl;
-                                const m22 = 3 * sm * sm * tm;
-
-                                const m31 = -(sl * sl * sl);
-                                const m32 = -(sm * sm * sm);
-
-                                F.set(
-                                    m00, m01, m02, 1,
-                                    m10, m11, m12, 0,
-                                    m20, m21, m22, 0,
-                                      0, m31, m32, 0,
-                                );
-
-                                M = mult4x4Fast(F.elements, MI3.elements);
-
-                                if (Math.abs(d1) > EPSILON && d1 < 0)
-                                {
-                                    kSign = -1;
-                                    lSign = -1;
-                                }
-
-                                break;
-                            }
-                            case CubicType.LOOP:
-                            {
-                                const sqrt = Math.sqrt(4 * d1 * d3 - 3 * d2 * d2);
-
-                                let td = d2 + sqrt;
-                                let sd = 2 * d1;
-                                const l1 = Math.sqrt(td * td + sd * sd);
-                                td /= l1;
-                                sd /= l1;
-
-                                let te = d2 - sqrt;
-                                let se = 2 * d1;
-                                const l2 = Math.sqrt(te * te + se * se);
-                                te /= l2;
-                                se /= l2;
-
-                                let ratio1 = td / sd;
-                                let ratio2 = te / se;
-
-                                if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
-                                {
-                                    this.segments.splice(i, 1);
-                                    continue;
-                                }
-
-                                const m00 = td * te;
-                                const m01 = td * td * te;
-                                const m02 = td * te * te;
-
-                                const m10 = -se * td - sd * te;
-                                const m11 = -se * td * td - 2 * sd * te * td;
-                                const m12 = -sd * te * te - 2 * se * td * te;
-
-                                const m20 = sd * se;
-                                const m21 = te * sd * sd + 2 * se * td * sd;
-                                const m22 = td * se * se + 2 * sd * te * se;
-
-                                const m31 = -sd * sd * se;
-                                const m32 = -sd * se * se;
-
-                                F.set(
-                                    m00, m01, m02, 1,
-                                    m10, m11, m12, 0,
-                                    m20, m21, m22, 0,
-                                      0, m31, m32, 0,
-                                );
-
-                                M = mult4x4Fast(F.elements, MI3.elements);
-
-
-                                let h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
-                                let h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
-
-                                if (Math.abs(h1) <= EPSILON) h1 = 0;
-                                if (Math.abs(h2) <= EPSILON) h2 = 0;
-                                let h = h1;
-
-                                if (Math.abs(h2) > Math.abs(h1))
-                                {
-                                    h = h2;
-                                }
-
-                                const d13 = d1 * d1 * d1;
-                                const alpha = HESSIAN_COEFF * d13 * h;
-
-                                if (alpha > 0)
-                                {
-                                    kSign = -1;
-                                    lSign = -1;
-                                }
-
-                                break;
-                            }
-                            case CubicType.CUSP2:
-                            {
-                                let tl = d3;
-                                let sl = 3 * d2;
-                                const l = Math.sqrt(tl * tl + sl * sl);
-                                tl /= l;
-                                sl /= l;
-
-                                const m00 = tl;
-                                const m01 = tl * tl * tl;
-                                const m10 = -sl;
-                                const m11 = -3 * sl * tl * tl;
-                                const m21 = 3 * sl * sl * tl;
-                                const m31 = -sl * sl * sl;
-
-                                F.set(
-                                    m00, m01, 1, 1,
-                                    m10, m11, 0, 0,
-                                      0, m21, 0, 0,
-                                      0, m31, 0, 0,
-                                );
-
-                                M = mult4x4Fast(F.elements, MI3.elements);
-
-                                // // HACK: not certain this works correctly
-                                // if (segment.flip)
-                                // {
-                                //     kSign = Math.sign(d2);
-                                //     lSign = Math.sign(d2);
-                                // }
-                                // else
-                                // {
-                                //     kSign = -Math.sign(d2);
-                                //     lSign = -Math.sign(d2);
-                                // }
-
-                                break;
-                            }
-                            case CubicType.QUADRATIC:
-                            case CubicType.LINE:
-                            {
-                                // these are special cases
-                                break;
-                            }
-                        }
-                        // ---
-
-                        let k1: number;
-                        let l1: number;
-                        let m1: number;
-
-                        let k2: number;
-                        let l2: number;
-                        let m2: number;
-
-                        let k3: number;
-                        let l3: number;
-                        let m3: number;
-
-                        let k4: number;
-                        let l4: number;
-                        let m4: number;
-
-                        // --- calculate MI3 * F and get k, l and m
-                        if (cubicType === CubicType.QUADRATIC)
-                        {
-                            // NOTE: the article actually gives completely
-                            // different values, but they don't work.
-                            // These are taken from Figma, but flipped,
-                            // because of course it doesn't work as is, for some reason
-                            k1 = 0;
-                            l1 = 0;
-                            m1 = 0;
-
-                            k2 = -QUAD_K2;
-                            l2 = 0;
-                            m2 = QUAD_K2;
-
-                            k3 = -QUAD_K3;
-                            l3 = -QUAD_L3;
-                            m3 = QUAD_K3;
-
-                            k4 = -1;
-                            l4 = -1;
-                            m4 = 1;
-                        }
-                        else
-                        {
-                            if (cubicType === CubicType.LINE)
-                            {
-                                rows.push(
-                                    [
-                                        [segment.x1, segment.y1, 0, 0, 0],
-                                        [segment.x2, segment.y2, 0, 0, 0],
-                                    ]
-                                );
-
+                                // this.segments.splice(i, 1);
                                 continue;
                             }
 
-                            k1 = kSign * M[0];
-                            l1 = lSign * M[1];
-                            m1 = M[2];
+                            const m00 = tl * tm;
+                            const m01 = tl * tl * tl;
+                            const m02 = tm * tm * tm;
 
-                            k2 = kSign * M[4];
-                            l2 = lSign * M[5];
-                            m2 = M[6];
+                            const m10 = -(sm * tl) - (sl * tm);
+                            const m11 = -(3 * sl * tl * tl);
+                            const m12 = -(3 * sm * tm * tm);
 
-                            k3 = kSign * M[8];
-                            l3 = lSign * M[9];
-                            m3 = M[10];
+                            const m20 = sl * sm;
+                            const m21 = 3 * sl * sl * tl;
+                            const m22 = 3 * sm * sm * tm;
 
-                            k4 = kSign * M[12];
-                            l4 = lSign * M[13];
-                            m4 = M[14];
+                            const m31 = -(sl * sl * sl);
+                            const m32 = -(sm * sm * sm);
+
+                            F.set(
+                                m00, m01, m02, 1,
+                                m10, m11, m12, 0,
+                                m20, m21, m22, 0,
+                                  0, m31, m32, 0,
+                            );
+
+                            M = mult4x4Fast(F.elements, MI3.elements);
+
+                            // FIXME: This is where the fun begins
+                            // Every single source I've checked says that signs
+                            // for serpentines are flipped only when d1 < 0.
+                            // But this doesn't cover all cases for some damn reason
+                            if (Math.abs(d1) > EPSILON && d1 < 0)
+                            {
+                                kSign = -1;
+                                lSign = -1;
+                            }
+
+                            break;
                         }
+                        case CubicType.LOOP:
+                        {
+                            const sqrt = Math.sqrt(4 * d1 * d3 - 3 * d2 * d2);
 
+                            let td = d2 + sqrt;
+                            let sd = 2 * d1;
+                            const l1 = Math.sqrt(td * td + sd * sd);
+                            td /= l1;
+                            sd /= l1;
+
+                            let te = d2 - sqrt;
+                            let se = 2 * d1;
+                            const l2 = Math.sqrt(te * te + se * se);
+                            te /= l2;
+                            se /= l2;
+
+                            let ratio1 = td / sd;
+                            let ratio2 = te / se;
+
+                            if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
+                            {
+                                // this.segments.splice(i, 1);
+                                continue;
+                            }
+
+                            const m00 = td * te;
+                            const m01 = td * td * te;
+                            const m02 = td * te * te;
+
+                            const m10 = -se * td - sd * te;
+                            const m11 = -se * td * td - 2 * sd * te * td;
+                            const m12 = -sd * te * te - 2 * se * td * te;
+
+                            const m20 = sd * se;
+                            const m21 = te * sd * sd + 2 * se * td * sd;
+                            const m22 = td * se * se + 2 * sd * te * se;
+
+                            const m31 = -sd * sd * se;
+                            const m32 = -sd * se * se;
+
+                            F.set(
+                                m00, m01, m02, 1,
+                                m10, m11, m12, 0,
+                                m20, m21, m22, 0,
+                                  0, m31, m32, 0,
+                            );
+
+                            M = mult4x4Fast(F.elements, MI3.elements);
+
+                            // FIXME: I am not even remotely confident that this is correct.
+                            // 2005 article doesn't give a very clear answer on how to do this,
+                            // and GPU Gems just tells you to check d1 and k1 (M[3]).
+                            // None of those approaches worked for me
+                            let h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
+                            let h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
+
+                            if (Math.abs(h1) <= EPSILON) h1 = 0;
+                            if (Math.abs(h2) <= EPSILON) h2 = 0;
+                            let h = h1;
+
+                            if (Math.abs(h2) > Math.abs(h1))
+                            {
+                                h = h2;
+                            }
+
+                            const alpha = d1 * h;
+
+                            // this does not function properly
+                            if (alpha > 0)
+                            {
+                                kSign = -1;
+                                lSign = -1;
+                            }
+
+                            break;
+                        }
+                        case CubicType.CUSP2:
+                        {
+                            let tl = d3;
+                            let sl = 3 * d2;
+                            const l = Math.sqrt(tl * tl + sl * sl);
+                            tl /= l;
+                            sl /= l;
+
+                            const ratio = tl / sl;
+
+                            if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
+                            {
+                                // this.segments.splice(i, 1);
+                                continue;
+                            }
+
+                            const m00 = tl;
+                            const m01 = tl * tl * tl;
+                            const m10 = -sl;
+                            const m11 = -3 * sl * tl * tl;
+                            const m21 = 3 * sl * sl * tl;
+                            const m31 = -sl * sl * sl;
+
+                            F.set(
+                                m00, m01, 1, 1,
+                                m10, m11, 0, 0,
+                                  0, m21, 0, 0,
+                                  0, m31, 0, 0,
+                            );
+
+                            M = mult4x4Fast(F.elements, MI3.elements);
+
+                            // HACK: ??? This seems to work, no idea why
+                            if (segment.flip)
+                            {
+                                kSign = Math.sign(d2);
+                                lSign = Math.sign(d2);
+                            }
+                            else
+                            {
+                                kSign = -Math.sign(d2);
+                                lSign = -Math.sign(d2);
+                            }
+
+                            break;
+                        }
+                        case CubicType.QUADRATIC:
+                        case CubicType.LINE:
+                            break;
+                    }
+                    // ---
+
+                    let k1: number;
+                    let l1: number;
+                    let m1: number;
+
+                    let k2: number;
+                    let l2: number;
+                    let m2: number;
+
+                    let k3: number;
+                    let l3: number;
+                    let m3: number;
+
+                    let k4: number;
+                    let l4: number;
+                    let m4: number;
+
+                    // --- calculate MI3 * F and get k, l and m
+                    if (cubicType === CubicType.QUADRATIC)
+                    {
+                        //NOTE: This works for curves I tried, but maybe not for all of them
+                        // The 2005 article doesn't say ANYTHING about flipping the signs
+                        // for quadratics, but according to GPU Gems 3 it depends on d3
+                        k1 = 0;
+                        l1 = 0;
+                        m1 = 0;
+
+                        k2 = -QUAD_K2;
+                        l2 = 0;
+                        m2 = QUAD_K2;
+
+                        k3 = -QUAD_K3;
+                        l3 = -QUAD_L3;
+                        m3 = QUAD_K3;
+
+                        k4 = -1;
+                        l4 = -1;
+                        m4 = 1;
+                    }
+                    else if (cubicType === CubicType.LINE)
+                    {
                         rows.push(
                             [
-                                [segment.x1,   segment.y1,   k1, l1, m1],
-                                [segment.cx1!, segment.cy1!, k2, l2, m2],
-                                [segment.cx2!, segment.cy2!, k3, l3, m3],
-                                [segment.x2,   segment.y2,   k4, l4, m4],
+                                [segment.x1, segment.y1, 0, 0, 0],
+                                [segment.x2, segment.y2, 0, 0, 0],
                             ]
                         );
-                        // ---
 
                         continue;
                     }
+                    else
+                    {
+                        k1 = kSign * M[0];
+                        l1 = lSign * M[1];
+                        m1 = M[2];
+
+                        k2 = kSign * M[4];
+                        l2 = lSign * M[5];
+                        m2 = M[6];
+
+                        k3 = kSign * M[8];
+                        l3 = lSign * M[9];
+                        m3 = M[10];
+
+                        k4 = kSign * M[12];
+                        l4 = lSign * M[13];
+                        m4 = M[14];
+                    }
+
+                    rows.push(
+                        [
+                            [segment.x1,   segment.y1,   k1, l1, m1],
+                            [segment.cx1!, segment.cy1!, k2, l2, m2],
+                            [segment.cx2!, segment.cy2!, k3, l3, m3],
+                            [segment.x2,   segment.y2,   k4, l4, m4],
+                        ]
+                    );
+                    // ---
+
+                    continue;
                 }
             }
         }
