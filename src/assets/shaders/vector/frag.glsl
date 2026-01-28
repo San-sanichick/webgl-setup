@@ -7,7 +7,7 @@ out vec4 outColor;
 
 void main()
 {
-    if (o_klm.x * o_klm.x * o_klm.x < o_klm.y * o_klm.z)
+    if (o_klm.x * o_klm.x * o_klm.x > o_klm.y * o_klm.z)
     {
         discard;
     }

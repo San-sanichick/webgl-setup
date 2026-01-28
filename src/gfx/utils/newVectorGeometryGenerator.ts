@@ -1,4 +1,5 @@
 import { determinant3x3 } from "./matrixUtils";
+import { cross, dot } from "./vectorUtils";
 
 const THIRD = 1 / 3;
 const QUAD_K2 = THIRD;
@@ -29,6 +30,8 @@ class Segment
     public cx2?: number;
     public cy2?: number;
 
+    public flip = false;
+    public split = false;
 
     constructor(
         x1: number, y1: number,
@@ -675,14 +678,18 @@ export class VectorDataGenerator
                 segment.x2, segment.y2,
             );
 
-            vector.splice(segmentIndex + 1, 0, ...segments);
+            segments[1].flip = true;
+            segments[0].split = true;
+            segments[1].split = true;
 
-            const triangle = [
-                new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-                new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-            ];
+            vector.splice(segmentIndex, 1, ...segments);
 
-            this.segments.splice(vectorIndex + 1, 0, triangle);
+            // const triangle = [
+            //     new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
+            //     new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
+            // ];
+            //
+            // this.segments.splice(vectorIndex + 1, 0, triangle);
 
             return true;
         }
@@ -697,14 +704,18 @@ export class VectorDataGenerator
                 segment.x2, segment.y2,
             );
 
-            vector.splice(segmentIndex + 1, 0, ...segments);
+            segments[0].flip = true;
+            segments[0].split = true;
+            segments[1].split = true;
 
-            const triangle = [
-                new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-                new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-            ];
+            vector.splice(segmentIndex, 1, ...segments);
 
-            this.segments.splice(vectorIndex + 1, 0, triangle);
+            // const triangle = [
+            //     new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
+            //     new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
+            // ];
+            //
+            // this.segments.splice(vectorIndex + 1, 0, triangle);
 
             return true;
         }
@@ -725,21 +736,6 @@ export class VectorDataGenerator
             const vector = this.segments[i];
             if (vector.length === 0) continue;
 
-            {
-                const row: VectorGeometryRow[] = [];
-
-                for (let j = 0; j < vector.length; j++)
-                {
-                    const segment = vector[j];
-
-                    // NOTE: Figma uses 0.5 for k, l and m for line segments.
-                    // For some reason for us it doesn't work, so we use 0 instead
-                    row.push([segment.x1, segment.y1, 0, 0, 0]);
-                    row.push([segment.x2, segment.y2, 0, 0, 0]);
-                }
-
-                rows.push(row);
-            }
 
             {
                 // yay
@@ -788,7 +784,13 @@ export class VectorDataGenerator
                     let d2 = -a2 + 3 * a3;
                     let d3 = 3 * a3;
 
+                    const l = Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
+                    d1 /= l;
+                    d2 /= l;
+                    d3 /= l;
+
                     console.log("=======");
+                    console.log(d1, d2, d3);
                     const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
                     console.log(
                         CubicType[cubicType],
@@ -814,6 +816,8 @@ export class VectorDataGenerator
 
                             const ltls = (lt - ls);
                             const mtms = (mt - ms);
+                            const ltls2 = ltls * ltls;
+                            const mtms2 = mtms * mtms;
 
                             M[0] = ls * ms;
                             M[1] = ls * ls * ls;
@@ -824,15 +828,28 @@ export class VectorDataGenerator
                             M[5] = ms * ms * (ms - mt);
 
                             M[6] = THIRD * (lt * (mt - 2 * ms) + ls * (3 * ms - 2 * mt));
-
-                            const ltls2 = ltls * ltls;
-                            const mtms2 = mtms * mtms;
                             M[7] = ltls2 * ls;
                             M[8] = mtms2 * ms;
 
                             M[9] = ltls * mtms;
                             M[10] = -(ltls2 * ltls);
                             M[11] = -(mtms2 * mtms);
+
+                            M[0] = -M[0];
+                            M[1] = -M[1];
+                            // M[2] = -M[2];
+
+                            M[3] = -M[3];
+                            M[4] = -M[4];
+                            // M[5] = -M[5];
+
+                            M[6] = -M[6];
+                            M[7] = -M[7];
+                            // M[8] = -M[8];
+
+                            M[9] = -M[9];
+                            M[10] = -M[10];
+                            // M[11] = -M[11];
 
                             if (Math.abs(d1) > EPSILON && d1 < 0)
                             {
@@ -854,19 +871,20 @@ export class VectorDataGenerator
                             const ltls = lt - ls;
                             const mtms = mt - ms;
 
-                            const ratio1 = lt / ls;
-                            const ratio2 = mt / ms;
+                            const ratio1 = ls / lt;
+                            const ratio2 = ms / mt;
 
+                            console.log(j);
                             if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
                             {
-                                console.log("SPLIT", ratio1, ratio2);
+                                // this.segments[i].splice(j, 1);
+                                j--;
                                 continue;
                             }
 
-
                             M[0] = ls * ms;
-                            M[1] = ls * ls * ls;
-                            M[2] = ms * ms * ms;
+                            M[1] = ls * ls * ms;
+                            M[2] = ls * ms * ms;
 
                             M[3] = THIRD * (3 * ls * ms - ls * mt - lt * ms);
                             M[4] = -THIRD * ls * (ls * (mt - 3 * ms) + 2 * lt * ms);
@@ -880,15 +898,25 @@ export class VectorDataGenerator
                             M[10] = -ltls * ltls * mtms;
                             M[11] = -ltls * mtms * mtms;
 
-                            if (Math.abs(d1) > EPSILON && d1 > 0 && Math.abs(M[3]) > EPSILON && Math.sign(M[3]) < 0)
+                            console.log("k0 and k1", M[0], M[3]);
+                            console.log(segment.split);
+                            if (!segment.split)
                             {
-                                flip = true;
+                                if (Math.abs(d1) > EPSILON && d1 > 0 && Math.abs(M[3]) >= EPSILON && M[3] < 0)
+                                {
+                                    flip = true;
+                                }
+
+                                if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[3]) >= EPSILON && M[3] > 0)
+                                {
+                                    flip = true;
+                                }
                             }
 
-                            if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[3]) > EPSILON && Math.sign(M[3]) > 0)
-                            {
-                                flip = true;
-                            }
+                            // if (segment.flip)
+                            // {
+                            //     flip = true;
+                            // }
 
                             break;
                         }
@@ -896,6 +924,14 @@ export class VectorDataGenerator
                         {
                             const ls = d3;
                             const lt = 3 * d2;
+
+                            const ratio = ls / lt;
+                            if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
+                            {
+                                // this.segments[i].splice(j, 1);
+                                j--;
+                                continue;
+                            }
 
                             M[0] = ls;
                             M[1] = ls * ls * ls;
@@ -912,6 +948,12 @@ export class VectorDataGenerator
                             M[9] = ls - lt;
                             M[10] = (ls - lt) * (ls - lt) * (ls - lt);
                             M[11] = 1;
+
+                            // HACK: hack
+                            if (vector[j + 1].flip)
+                            {
+                                flip = true;
+                            }
 
                             break;
                         }
@@ -971,7 +1013,26 @@ export class VectorDataGenerator
                             [segment.x2,   segment.y2,   M[9], M[10], M[11]],
                         ]
                     );
+
+                    console.log(rows.at(-1));
                 }
+            }
+
+
+            {
+                const row: VectorGeometryRow[] = [];
+
+                for (let j = 0; j < vector.length; j++)
+                {
+                    const segment = vector[j];
+
+                    // NOTE: Figma uses 0.5 for k, l and m for line segments.
+                    // For some reason for us it doesn't work, so we use 0 instead
+                    row.push([segment.x1, segment.y1, 0, 0, 0]);
+                    row.push([segment.x2, segment.y2, 0, 0, 0]);
+                }
+
+                rows.push(row);
             }
         }
 

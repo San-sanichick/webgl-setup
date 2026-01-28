@@ -24,9 +24,9 @@ import { getFont } from "./utils/font";
 
 import {
     triangulateVectorGeometryFromData,
-    VectorDataGenerator
+    // VectorDataGenerator
 } from "./utils/vectorGeometryGenerator";
-// import { VectorDataGenerator } from "./utils/newVectorGeometryGenerator";
+import { VectorDataGenerator } from "./utils/newVectorGeometryGenerator";
 import { GradientGenerator, type GradientStop } from "./gl/gradient/gradientGenerator";
 
 // import Commands from "@/assets/commands.json" with { type: "json" }
@@ -198,7 +198,7 @@ export default class App2D
 
         // const commands = [parseSVG.parseSVG("M20 27.79 C19.08 28.76 17.73 29.25 16 29.25 S12.93 28.76 12 27.79 C10.42 26.13 10.52 23.58 10.52 23.51 V18.03 H21.48 V23.54 S21.58 26.12 20 27.78 Z")];
         // const commands = [parseSVG.parseSVG("M21.48 23.54 S21.58 26.12 20 27.78 Z")];
-        // const commands = [parseSVG.parseSVG("M0,0 C20,-20 40,20 60,0Z")];
+        // const commands = [parseSVG.parseSVG("M100,100 C120,80 140,120 160,100Z")];
 
         // const now = performance.now();
 
@@ -339,6 +339,19 @@ export default class App2D
 
             const rows = gen.buildGeometry();
             const [vertices, len] = triangulateVectorGeometryFromData(rows);
+
+            // let j = 0;
+            // for (let i = 0; i < len; i++)
+            // {
+            //     const x = vertices[j] - 2;
+            //     const y = vertices[j + 1] - 2;
+            //     const k = vertices[j + 2];
+            //     const l = vertices[j + 3];
+            //     const m = vertices[j + 4];
+            //
+            //     console.log(x, y, k, l, m);
+            //     j += 5;
+            // }
 
             poly.setData(vertices, len);
         }
