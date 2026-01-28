@@ -1,5 +1,4 @@
 import { determinant3x3 } from "./matrixUtils";
-import { cross, dot } from "./vectorUtils";
 
 const THIRD = 1 / 3;
 const QUAD_K2 = THIRD;
@@ -110,13 +109,11 @@ enum CubicType
 }
 
 let M = new Array<number>(12);
-const O = Object.freeze([
-    -1,  0, 0,
-     0, -1, 0,
-     0,  0, 1,
-]);
 
 
+/**
+ * @see https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-25-rendering-vector-art-gpu
+ */
 export class VectorDataGenerator
 {
     private segments: Segment[][];
@@ -551,36 +548,6 @@ export class VectorDataGenerator
         const discr = d1 * d1 * D;
         console.log("discr", discr);
 
-        // if (discr === 0)
-        // {
-        //     if (d1 === 0 && d2 === 0)
-        //     {
-        //         if (d3 === 0)
-        //         {
-        //             CubicType.LINE;
-        //         }
-        //
-        //         return CubicType.QUADRATIC;
-        //     }
-        //
-        //     if (d1 !== 0)
-        //     {
-        //         return CubicType.CUSP;
-        //     }
-        //
-        //     if (D < 0)
-        //     {
-        //         return CubicType.LOOP;
-        //     }
-        //
-        //     return CubicType.SERPENTINE;
-        // }
-        //
-        // if (discr > 0) return CubicType.SERPENTINE;
-        //
-        // return CubicType.LOOP;
-
-
         if (
             Math.abs(d1) <= EPSILON &&
             Math.abs(d2) <= EPSILON &&
@@ -651,12 +618,6 @@ export class VectorDataGenerator
     }
 
 
-    private static computeHessian(t: number, s: number, d1: number, d2: number, d3: number): number
-    {
-        return 36 * ((d3 * d1 - d2 * d2) * s * s + d1 * d2 * s * t - d1 * d1 * t * t);
-    }
-
-
     private subdivideSegment(
         segment: Segment,
         segmentIndex: number,
@@ -684,13 +645,6 @@ export class VectorDataGenerator
 
             vector.splice(segmentIndex, 1, ...segments);
 
-            // const triangle = [
-            //     new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-            //     new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-            // ];
-            //
-            // this.segments.splice(vectorIndex + 1, 0, triangle);
-
             return true;
         }
 
@@ -710,13 +664,6 @@ export class VectorDataGenerator
 
             vector.splice(segmentIndex, 1, ...segments);
 
-            // const triangle = [
-            //     new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-            //     new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-            // ];
-            //
-            // this.segments.splice(vectorIndex + 1, 0, triangle);
-
             return true;
         }
 
@@ -724,9 +671,6 @@ export class VectorDataGenerator
     }
 
 
-    // TODO: Several optimizations to look into:
-    // 1) Use ObjectPool to reduce allocations (big one)
-    // 2) Reduce the amount of function calls
     public buildGeometry(): VectorGeometryRow[][]
     {
         const rows: VectorGeometryRow[][] = [];
@@ -737,261 +681,111 @@ export class VectorDataGenerator
             if (vector.length === 0) continue;
 
 
+            for (let j = 0; j < vector.length; j++)
             {
-                // yay
-                for (let j = 0; j < vector.length; j++)
+                const segment = vector[j];
+
+                if (segment.isLine()) continue;
+                if (segment.isQuadratic()) continue;
+
+                const B01 = segment.x1;
+                const B02 = segment.y1;
+                const B03 = 1;
+
+                const B11 = segment.cx1!;
+                const B12 = segment.cy1!;
+                const B13 = 1;
+
+                const B21 = segment.cx2!;
+                const B22 = segment.cy2!;
+                const B23 = 1;
+
+                const B31 = segment.x2;
+                const B32 = segment.y2;
+                const B33 = 1;
+
+                const a1 = determinant3x3(
+                    B01, B02, B03,
+                    B31, B32, B33,
+                    B21, B22, B23,
+                );
+
+                const a2 = determinant3x3(
+                    B11, B12, B13,
+                    B01, B02, B03,
+                    B31, B32, B33,
+                );
+
+                const a3 = determinant3x3(
+                    B21, B22, B23,
+                    B11, B12, B13,
+                    B01, B02, B03,
+                );
+
+                let d1 = a1 - 2 * a2 + 3 * a3;
+                let d2 = -a2 + 3 * a3;
+                let d3 = 3 * a3;
+
+                const l = Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
+                d1 /= l;
+                d2 /= l;
+                d3 /= l;
+
+                console.log("=======");
+                console.log(d1, d2, d3);
+                const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
+                console.log(
+                    CubicType[cubicType],
+                    segment.x1, segment.y1,
+                    segment.cx1, segment.cy1,
+                    segment.cx2, segment.cy2,
+                    segment.x2, segment.y2,
+                );
+
+                let flip = false;
+
+                switch (cubicType)
                 {
-                    const segment = vector[j];
-
-                    if (segment.isLine()) continue;
-                    if (segment.isQuadratic()) continue;
-
-                    const B01 = segment.x1;
-                    const B02 = segment.y1;
-                    const B03 = 1;
-
-                    const B11 = segment.cx1!;
-                    const B12 = segment.cy1!;
-                    const B13 = 1;
-
-                    const B21 = segment.cx2!;
-                    const B22 = segment.cy2!;
-                    const B23 = 1;
-
-                    const B31 = segment.x2;
-                    const B32 = segment.y2;
-                    const B33 = 1;
-
-                    const a1 = determinant3x3(
-                        B01, B02, B03,
-                        B31, B32, B33,
-                        B21, B22, B23,
-                    );
-
-                    const a2 = determinant3x3(
-                        B11, B12, B13,
-                        B01, B02, B03,
-                        B31, B32, B33,
-                    );
-
-                    const a3 = determinant3x3(
-                        B21, B22, B23,
-                        B11, B12, B13,
-                        B01, B02, B03,
-                    );
-
-                    let d1 = a1 - 2 * a2 + 3 * a3;
-                    let d2 = -a2 + 3 * a3;
-                    let d3 = 3 * a3;
-
-                    const l = Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
-                    d1 /= l;
-                    d2 /= l;
-                    d3 /= l;
-
-                    console.log("=======");
-                    console.log(d1, d2, d3);
-                    const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
-                    console.log(
-                        CubicType[cubicType],
-                        segment.x1, segment.y1,
-                        segment.cx1, segment.cy1,
-                        segment.cx2, segment.cy2,
-                        segment.x2, segment.y2,
-                    );
-
-                    let flip = false;
-
-                    switch (cubicType)
+                    case CubicType.SERPENTINE:
                     {
-                        case CubicType.SERPENTINE:
+                        const sqrt = Math.sqrt(9 * d2 * d2 - 12 * d1 * d3);
+
+                        const ls = 3 * d2 - sqrt;
+                        const lt = 6 * d1;
+
+                        const ms = 3 * d2 + sqrt;
+                        const mt = lt;
+
+                        const ratio1 = ls / lt;
+                        const ratio2 = ms / mt;
+
+                        if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
                         {
-                            const sqrt = Math.sqrt(9 * d2 * d2 - 12 * d1 * d3);
-
-                            const ls = 3 * d2 - sqrt;
-                            const lt = 6 * d1;
-
-                            const ms = 3 * d2 + sqrt;
-                            const mt = lt;
-
-                            const ltls = (lt - ls);
-                            const mtms = (mt - ms);
-                            const ltls2 = ltls * ltls;
-                            const mtms2 = mtms * mtms;
-
-                            M[0] = ls * ms;
-                            M[1] = ls * ls * ls;
-                            M[2] = ms * ms * ms;
-
-                            M[3] = THIRD * (3 * ls * ms - ls * mt - lt * ms);
-                            M[4] = ls * ls * (ls - lt);
-                            M[5] = ms * ms * (ms - mt);
-
-                            M[6] = THIRD * (lt * (mt - 2 * ms) + ls * (3 * ms - 2 * mt));
-                            M[7] = ltls2 * ls;
-                            M[8] = mtms2 * ms;
-
-                            M[9] = ltls * mtms;
-                            M[10] = -(ltls2 * ltls);
-                            M[11] = -(mtms2 * mtms);
-
-                            M[0] = -M[0];
-                            M[1] = -M[1];
-                            // M[2] = -M[2];
-
-                            M[3] = -M[3];
-                            M[4] = -M[4];
-                            // M[5] = -M[5];
-
-                            M[6] = -M[6];
-                            M[7] = -M[7];
-                            // M[8] = -M[8];
-
-                            M[9] = -M[9];
-                            M[10] = -M[10];
-                            // M[11] = -M[11];
-
-                            if (Math.abs(d1) > EPSILON && d1 < 0)
-                            {
-                                flip = true;
-                            }
-
-                            break;
-                        }
-                        case CubicType.LOOP:
-                        {
-                            const sqrt = Math.sqrt(4 * d1 * d3 - 3 * d2 * d2);
-
-                            const ls = d2 - sqrt;
-                            const lt = 2 * d1;
-
-                            const ms = d2 + sqrt;
-                            const mt = lt;
-
-                            const ltls = lt - ls;
-                            const mtms = mt - ms;
-
-                            const ratio1 = ls / lt;
-                            const ratio2 = ms / mt;
-
-                            console.log(j);
-                            if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
-                            {
-                                // this.segments[i].splice(j, 1);
-                                j--;
-                                continue;
-                            }
-
-                            M[0] = ls * ms;
-                            M[1] = ls * ls * ms;
-                            M[2] = ls * ms * ms;
-
-                            M[3] = THIRD * (3 * ls * ms - ls * mt - lt * ms);
-                            M[4] = -THIRD * ls * (ls * (mt - 3 * ms) + 2 * lt * ms);
-                            M[5] = -THIRD * ms * (ls * (2 * mt - 3 * ms) + lt * ms);
-
-                            M[6] = THIRD * (lt * (mt - 2 * ms) + ls * (3 * ms - 2 * mt));
-                            M[7] = THIRD * ltls * (ls * (2 * mt - 3 * ms) + lt * ms);
-                            M[8] = THIRD * mtms * (ls * (mt - 3 * ms) + 2 * lt * ms);
-
-                            M[9] = ltls * mtms;
-                            M[10] = -ltls * ltls * mtms;
-                            M[11] = -ltls * mtms * mtms;
-
-                            console.log("k0 and k1", M[0], M[3]);
-                            console.log(segment.split);
-                            if (!segment.split)
-                            {
-                                if (Math.abs(d1) > EPSILON && d1 > 0 && Math.abs(M[3]) >= EPSILON && M[3] < 0)
-                                {
-                                    flip = true;
-                                }
-
-                                if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[3]) >= EPSILON && M[3] > 0)
-                                {
-                                    flip = true;
-                                }
-                            }
-
-                            // if (segment.flip)
-                            // {
-                            //     flip = true;
-                            // }
-
-                            break;
-                        }
-                        case CubicType.CUSP:
-                        {
-                            const ls = d3;
-                            const lt = 3 * d2;
-
-                            const ratio = ls / lt;
-                            if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
-                            {
-                                // this.segments[i].splice(j, 1);
-                                j--;
-                                continue;
-                            }
-
-                            M[0] = ls;
-                            M[1] = ls * ls * ls;
-                            M[2] = 1;
-
-                            M[3] = ls - (1 / 3) * lt;
-                            M[4] = ls * ls * (ls - lt);
-                            M[5] = 1;
-
-                            M[6] = ls - (2 / 3) * lt;
-                            M[7] = (ls - lt) * (ls - lt) * ls;
-                            M[8] = 1;
-
-                            M[9] = ls - lt;
-                            M[10] = (ls - lt) * (ls - lt) * (ls - lt);
-                            M[11] = 1;
-
-                            // HACK: hack
-                            if (vector[j + 1].flip)
-                            {
-                                flip = true;
-                            }
-
-                            break;
-                        }
-                        case CubicType.QUADRATIC:
-                        {
-                            M[0] = 0;
-                            M[1] = 0;
-                            M[2] = 0;
-
-                            M[3] = -QUAD_K2;
-                            M[4] = 0;
-                            M[5] = QUAD_K2;
-
-                            M[6] = -QUAD_K3;
-                            M[7] = -QUAD_L3;
-                            M[8] = QUAD_K3;
-
-                            M[9] = -1;
-                            M[10] = -1;
-                            M[11] = 1;
-
-                            break;
-                        }
-                        case CubicType.LINE:
-                        {
-                            rows.push(
-                                [
-                                    [segment.x1, segment.y1, 0, 0, 0],
-                                    [segment.x2, segment.y2, 0, 0, 0],
-                                ]
-                            );
+                            j--;
                             continue;
                         }
-                        case CubicType.POINT: continue;
-                    }
 
-                    if (flip)
-                    {
+                        const ltls = (lt - ls);
+                        const mtms = (mt - ms);
+                        const ltls2 = ltls * ltls;
+                        const mtms2 = mtms * mtms;
+
+                        M[0] = ls * ms;
+                        M[1] = ls * ls * ls;
+                        M[2] = ms * ms * ms;
+
+                        M[3] = THIRD * (3 * ls * ms - ls * mt - lt * ms);
+                        M[4] = ls * ls * (ls - lt);
+                        M[5] = ms * ms * (ms - mt);
+
+                        M[6] = THIRD * (lt * (mt - 2 * ms) + ls * (3 * ms - 2 * mt));
+                        M[7] = ltls2 * ls;
+                        M[8] = mtms2 * ms;
+
+                        M[9] = ltls * mtms;
+                        M[10] = -(ltls2 * ltls);
+                        M[11] = -(mtms2 * mtms);
+
                         M[0] = -M[0];
                         M[1] = -M[1];
 
@@ -1003,37 +797,188 @@ export class VectorDataGenerator
 
                         M[9] = -M[9];
                         M[10] = -M[10];
+
+                        if (Math.abs(d1) > EPSILON && d1 < 0)
+                        {
+                            flip = true;
+                        }
+
+                        break;
                     }
+                    case CubicType.LOOP:
+                    {
+                        const sqrt = Math.sqrt(4 * d1 * d3 - 3 * d2 * d2);
 
-                    rows.push(
-                        [
-                            [segment.x1,   segment.y1,   M[0], M[1], M[2]],
-                            [segment.cx1!, segment.cy1!, M[3], M[4], M[5]],
-                            [segment.cx2!, segment.cy2!, M[6], M[7], M[8]],
-                            [segment.x2,   segment.y2,   M[9], M[10], M[11]],
-                        ]
-                    );
+                        const ls = d2 - sqrt;
+                        const lt = 2 * d1;
 
-                    console.log(rows.at(-1));
+                        const ms = d2 + sqrt;
+                        const mt = lt;
+
+                        const ltls = lt - ls;
+                        const mtms = mt - ms;
+
+                        const ratio1 = ls / lt;
+                        const ratio2 = ms / mt;
+
+                        if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
+                        {
+                            j--;
+                            continue;
+                        }
+
+                        M[0] = ls * ms;
+                        M[1] = ls * ls * ms;
+                        M[2] = ls * ms * ms;
+
+                        M[3] = THIRD * (3 * ls * ms - ls * mt - lt * ms);
+                        M[4] = -THIRD * ls * (ls * (mt - 3 * ms) + 2 * lt * ms);
+                        M[5] = -THIRD * ms * (ls * (2 * mt - 3 * ms) + lt * ms);
+
+                        M[6] = THIRD * (lt * (mt - 2 * ms) + ls * (3 * ms - 2 * mt));
+                        M[7] = THIRD * ltls * (ls * (2 * mt - 3 * ms) + lt * ms);
+                        M[8] = THIRD * mtms * (ls * (mt - 3 * ms) + 2 * lt * ms);
+
+                        M[9] = ltls * mtms;
+                        M[10] = -ltls * ltls * mtms;
+                        M[11] = -ltls * mtms * mtms;
+
+                        console.log("k0 and k1", M[0], M[3]);
+                        console.log(segment.split);
+                        if (!segment.split)
+                        {
+                            if (Math.abs(d1) > EPSILON && d1 > 0 && Math.abs(M[3]) >= EPSILON && M[3] < 0)
+                            {
+                                flip = true;
+                            }
+
+                            if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[3]) >= EPSILON && M[3] > 0)
+                            {
+                                flip = true;
+                            }
+                        }
+
+                        if (segment.flip)
+                        {
+                            flip = true;
+                        }
+
+                        break;
+                    }
+                    case CubicType.CUSP:
+                    {
+                        const ls = d3;
+                        const lt = 3 * d2;
+
+                        const ratio = ls / lt;
+                        if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
+                        {
+                            j--;
+                            continue;
+                        }
+
+                        M[0] = ls;
+                        M[1] = ls * ls * ls;
+                        M[2] = 1;
+
+                        M[3] = ls - (1 / 3) * lt;
+                        M[4] = ls * ls * (ls - lt);
+                        M[5] = 1;
+
+                        M[6] = ls - (2 / 3) * lt;
+                        M[7] = (ls - lt) * (ls - lt) * ls;
+                        M[8] = 1;
+
+                        M[9] = ls - lt;
+                        M[10] = (ls - lt) * (ls - lt) * (ls - lt);
+                        M[11] = 1;
+
+                        // HACK: hack
+                        if (vector[j + 1].flip)
+                        {
+                            flip = true;
+                        }
+
+                        break;
+                    }
+                    case CubicType.QUADRATIC:
+                    {
+                        M[0] = 0;
+                        M[1] = 0;
+                        M[2] = 0;
+
+                        M[3] = -QUAD_K2;
+                        M[4] = 0;
+                        M[5] = QUAD_K2;
+
+                        M[6] = -QUAD_K3;
+                        M[7] = -QUAD_L3;
+                        M[8] = QUAD_K3;
+
+                        M[9] = -1;
+                        M[10] = -1;
+                        M[11] = 1;
+
+                        if (Math.abs(d3) > EPSILON && d3 < 0)
+                        {
+                            flip = true;
+                        }
+
+                        break;
+                    }
+                    case CubicType.LINE:
+                    {
+                        rows.push(
+                            [
+                                [segment.x1, segment.y1, 0, 0, 0],
+                                [segment.x2, segment.y2, 0, 0, 0],
+                            ]
+                        );
+                        continue;
+                    }
+                    case CubicType.POINT: continue;
                 }
-            }
 
-
-            {
-                const row: VectorGeometryRow[] = [];
-
-                for (let j = 0; j < vector.length; j++)
+                if (flip)
                 {
-                    const segment = vector[j];
+                    M[0] = -M[0];
+                    M[1] = -M[1];
 
-                    // NOTE: Figma uses 0.5 for k, l and m for line segments.
-                    // For some reason for us it doesn't work, so we use 0 instead
-                    row.push([segment.x1, segment.y1, 0, 0, 0]);
-                    row.push([segment.x2, segment.y2, 0, 0, 0]);
+                    M[3] = -M[3];
+                    M[4] = -M[4];
+
+                    M[6] = -M[6];
+                    M[7] = -M[7];
+
+                    M[9] = -M[9];
+                    M[10] = -M[10];
                 }
 
-                rows.push(row);
+                rows.push(
+                    [
+                        [segment.x1,   segment.y1,   M[0], M[1], M[2]],
+                        [segment.cx1!, segment.cy1!, M[3], M[4], M[5]],
+                        [segment.cx2!, segment.cy2!, M[6], M[7], M[8]],
+                        [segment.x2,   segment.y2,   M[9], M[10], M[11]],
+                    ]
+                );
+
+                console.log(rows.at(-1));
             }
+
+            const row: VectorGeometryRow[] = [];
+
+            for (let j = 0; j < vector.length; j++)
+            {
+                const segment = vector[j];
+
+                // NOTE: Figma uses 0.5 for k, l and m for line segments.
+                // For some reason for us it doesn't work, so we use 0 instead
+                row.push([segment.x1, segment.y1, 0, 0, 0]);
+                row.push([segment.x2, segment.y2, 0, 0, 0]);
+            }
+
+            rows.push(row);
         }
 
         return rows;
