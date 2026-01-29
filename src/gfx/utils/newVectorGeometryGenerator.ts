@@ -564,10 +564,10 @@ export class VectorDataGenerator
 
         if (Math.abs(discr) <= EPSILON)
         {
-            if (Math.abs(d1) <= EPSILON)
+            if (Math.abs(d1) <= EPSILON && Math.abs(d2) > EPSILON)
                 return CubicType.CUSP;
 
-            return CubicType.SERPENTINE;
+            return CubicType.LOOP;
         }
         else
         {
@@ -851,12 +851,28 @@ export class VectorDataGenerator
                             {
                                 flip = true;
                             }
-
-                            if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[3]) >= EPSILON && M[3] > 0)
+                            else if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[3]) >= EPSILON && M[3] > 0)
                             {
                                 flip = true;
                             }
+
+                            // if (Math.abs(d3) >= EPSILON && d3 < 0)
+                            // {
+                            //     flip = true;
+                            // }
                         }
+
+                        // M[0] = -M[0];
+                        // M[1] = -M[1];
+                        //
+                        // M[3] = -M[3];
+                        // M[4] = -M[4];
+                        //
+                        // M[6] = -M[6];
+                        // M[7] = -M[7];
+                        //
+                        // M[9] = -M[9];
+                        // M[10] = -M[10];
 
                         if (segment.flip)
                         {

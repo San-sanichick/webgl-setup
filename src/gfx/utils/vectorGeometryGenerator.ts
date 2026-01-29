@@ -37,6 +37,7 @@ class Segment
     public cy2?: number;
 
     public flip = false;
+    public reversed = false;
 
 
     constructor(
@@ -587,15 +588,16 @@ export class VectorDataGenerator
     {
         if (Math.abs(d1) >= EPSILON)
         {
-            const eq = (3 * d2 * d2 - 4 * d1 * d3);
+            const discr = (3 * d2 * d2 - 4 * d1 * d3);
+            console.log(discr);
 
-            if (Math.abs(eq) <= EPSILON)
+            if (Math.abs(discr) <= EPSILON)
                 return CubicType.CUSP1;
 
-            if (eq > 0)
+            if (discr > 0)
                 return CubicType.SERPENTINE;
 
-            if (eq < 0)
+            if (discr < 0)
                 return CubicType.LOOP;
         }
 
@@ -676,12 +678,12 @@ export class VectorDataGenerator
 
             vector.splice(segmentIndex + 1, 0, ...segments);
 
-            const triangle = [
-                new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-                new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-            ];
-
-            this.segments.splice(vectorIndex + 1, 0, triangle);
+            // const triangle = [
+            //     new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
+            //     new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
+            // ];
+            //
+            // this.segments.splice(vectorIndex + 1, 0, triangle);
 
             return true;
         }
@@ -700,12 +702,12 @@ export class VectorDataGenerator
 
             vector.splice(segmentIndex + 1, 0, ...segments);
 
-            const triangle = [
-                new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
-                new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
-            ];
-
-            this.segments.splice(vectorIndex + 1, 0, triangle);
+            // const triangle = [
+            //     new Segment(segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2),
+            //     new Segment(segments[1].x1, segments[1].y1, segments[1].x2, segments[1].y2),
+            // ];
+            //
+            // this.segments.splice(vectorIndex + 1, 0, triangle);
 
             return true;
         }
@@ -724,22 +726,9 @@ export class VectorDataGenerator
             if (vector.length === 0) continue;
 
             {
-                const row: VectorGeometryRow[] = [];
-
                 for (let j = 0; j < vector.length; j++)
                 {
-                    const segment = vector[j];
-
-                    row.push([segment.x1, segment.y1, 0, 0, 0]);
-                    row.push([segment.x2, segment.y2, 0, 0, 0]);
-                }
-
-                rows.push(row);
-            }
-
-            {
-                for (let j = 0; j < vector.length; j++)
-                {
+                    console.log("======");
                     const segment = vector[j];
                     if (segment.isLine()) continue;
                     if (!segment.isCubic()) continue;
@@ -753,6 +742,7 @@ export class VectorDataGenerator
                     ];
 
                     const out = multiply4x4By3x4(M3.elements, B);
+                    console.log(out);
 
                     const x1 = out[0];
                     const y1 = out[1];
@@ -792,12 +782,13 @@ export class VectorDataGenerator
                     d1 /= l;
                     d2 /= l;
                     d3 /= l;
+                    console.log(d1, d2, d3);
                     // ---
 
                     // get curve type
                     let cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
 
-                    // console.log(CubicType[cubicType], segment.flip, segment.x1, segment.y1, segment.x2, segment.y2);
+                    console.log(CubicType[cubicType], segment.flip, segment.x1, segment.y1, segment.x2, segment.y2);
 
                     let kSign = 1;
                     let lSign = 1;
@@ -817,12 +808,14 @@ export class VectorDataGenerator
                             const l1 = Math.sqrt(tl * tl + sl * sl);
                             tl /= l1;
                             sl /= l1;
+                            console.log(tl, sl);
 
                             let tm = d2 - (sqrt13 * sqrt);
                             let sm = 2 * d1;
                             const l2 = Math.sqrt(tm * tm + sm * sm);
                             tm /= l2;
                             sm /= l2;
+                            console.log(tm, sm);
 
                             let ratio1 = tl / sl;
                             let ratio2 = tm / sm;
@@ -833,7 +826,8 @@ export class VectorDataGenerator
                             // from what I've found
                             if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
                             {
-                                // this.segments.splice(i, 1);
+                                this.segments[i].splice(j, 1);
+                                j--;
                                 continue;
                             }
 
@@ -860,6 +854,7 @@ export class VectorDataGenerator
                             );
 
                             M = mult4x4Fast(F.elements, MI3.elements);
+                            console.log(M);
 
                             // FIXME: This is where the fun begins
                             // Every single source I've checked says that signs
@@ -869,6 +864,7 @@ export class VectorDataGenerator
                             {
                                 kSign = -1;
                                 lSign = -1;
+                                segment.reversed = true;
                             }
 
                             break;
@@ -894,7 +890,8 @@ export class VectorDataGenerator
 
                             if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
                             {
-                                // this.segments.splice(i, 1);
+                                this.segments[i].splice(j, 1);
+                                j--;
                                 continue;
                             }
 
@@ -929,6 +926,7 @@ export class VectorDataGenerator
                             let h1 = VectorDataGenerator.computeHessian(td, sd, d1, d2, d3);
                             let h2 = VectorDataGenerator.computeHessian(te, se, d1, d2, d3);
 
+                            console.log(h1, h2);
                             if (Math.abs(h1) <= EPSILON) h1 = 0;
                             if (Math.abs(h2) <= EPSILON) h2 = 0;
                             let h = h1;
@@ -945,6 +943,8 @@ export class VectorDataGenerator
                             {
                                 kSign = -1;
                                 lSign = -1;
+                                console.log("flip");
+                                segment.reversed = true;
                             }
 
                             break;
@@ -961,7 +961,8 @@ export class VectorDataGenerator
 
                             if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
                             {
-                                // this.segments.splice(i, 1);
+                                this.segments[i].splice(j, 1);
+                                j--;
                                 continue;
                             }
 
@@ -1043,8 +1044,8 @@ export class VectorDataGenerator
                     {
                         rows.push(
                             [
-                                [segment.x1, segment.y1, 0, 0, 0],
-                                [segment.x2, segment.y2, 0, 0, 0],
+                                [segment.x1 - 2, segment.y1 - 2, 0, 0, 0],
+                                [segment.x2 - 2, segment.y2 - 2, 0, 0, 0],
                             ]
                         );
 
@@ -1071,10 +1072,10 @@ export class VectorDataGenerator
 
                     rows.push(
                         [
-                            [segment.x1,   segment.y1,   k1, l1, m1],
-                            [segment.cx1!, segment.cy1!, k2, l2, m2],
-                            [segment.cx2!, segment.cy2!, k3, l3, m3],
-                            [segment.x2,   segment.y2,   k4, l4, m4],
+                            [segment.x1 - 2,   segment.y1 - 2,   k1, l1, m1],
+                            [segment.cx1! - 2, segment.cy1! - 2, k2, l2, m2],
+                            [segment.cx2! - 2, segment.cy2! - 2, k3, l3, m3],
+                            [segment.x2 - 2,   segment.y2 - 2,   k4, l4, m4],
                         ]
                     );
                     // ---
@@ -1082,6 +1083,21 @@ export class VectorDataGenerator
                     continue;
                 }
             }
+
+            {
+                const row: VectorGeometryRow[] = [];
+
+                for (let j = 0; j < vector.length; j++)
+                {
+                    const segment = vector[j];
+
+                    row.push([segment.x1 - 2, segment.y1 - 2, 0, 0, 0]);
+                    row.push([segment.x2 - 2, segment.y2 - 2, 0, 0, 0]);
+                }
+
+                rows.push(row);
+            }
+
         }
 
         return rows;
