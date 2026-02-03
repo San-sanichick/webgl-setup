@@ -1,5 +1,8 @@
 import { Vector3 } from "threejs-math";
 
+export const EPSILON = 1e-8; // not sure what to consider small enough
+export const BIG_EPSILON = 1e-5;
+
 const TO_RADIANS = Math.PI / 180;
 
 
@@ -26,4 +29,26 @@ export function screenToWorldSpace(point: Vector3, scale: number, offsetX: numbe
         coeff * point.y - offsetY,
         point.z
     );
+}
+
+
+export function isZero(val: number): boolean
+{
+    return Math.abs(val) <= EPSILON;
+}
+
+export function greaterThanZero(val: number): boolean
+{
+    return Math.abs(val) > EPSILON && val > 0;
+}
+
+export function lessThanZero(val: number): boolean
+{
+    return Math.abs(val) > EPSILON && val < 0;
+}
+
+export function equalOrLessThanZero(val: number): boolean
+{
+    const abs = Math.abs(val);
+    return abs <= EPSILON || (abs > EPSILON && val < 0)
 }

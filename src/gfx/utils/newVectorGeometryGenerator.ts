@@ -1,17 +1,23 @@
 import { determinant3x3 } from "./matrixUtils";
 
+import {
+    EPSILON,
+    greaterThanZero,
+    isZero,
+    lessThanZero
+} from "./math";
+
 const THIRD = 1 / 3;
-const QUAD_K2 = THIRD;
-const QUAD_K3 = 2 / 3;
-const QUAD_L3 = THIRD;
 const CURVE_CONVERSION_COEFF = 2 / 3;
-const EPSILON = 0.5e-11;
-const BIG_EPSILON = 1e-5;
+
+const QUAD_K2 = THIRD;
+const QUAD_K3 = CURVE_CONVERSION_COEFF;
+const QUAD_L3 = THIRD;
 
 
 function boundsCheck(val: number, start: number, end: number): boolean
 {
-    return val >= BIG_EPSILON && (end - val) >= BIG_EPSILON && val > start && val < end;
+    return val >= EPSILON && (end - val) >= EPSILON && val > start && val < end;
 }
 
 type VectorGeometryRow = [x: number, y: number, k: number, l: number, m: number];
@@ -546,25 +552,24 @@ export class VectorDataGenerator
     {
         const D = 3 * d2 * d2 - 4 * d1 * d3;
         const discr = d1 * d1 * D;
-        console.log("discr", discr);
 
         if (
-            Math.abs(d1) <= EPSILON &&
-            Math.abs(d2) <= EPSILON &&
-            Math.abs(d3) <= EPSILON
+            isZero(d1) &&
+            isZero(d2) &&
+            isZero(d3)
         )
         {
             return CubicType.LINE;
         }
 
-        if (Math.abs(d1) <= EPSILON && Math.abs(d2) <= EPSILON)
+        if (isZero(d1) && isZero(d2))
         {
             return CubicType.QUADRATIC;
         }
 
-        if (Math.abs(discr) <= EPSILON)
+        if (isZero(discr))
         {
-            if (Math.abs(d1) <= EPSILON && Math.abs(d2) > EPSILON)
+            if (isZero(d1) && greaterThanZero(d2))
                 return CubicType.CUSP;
 
             return CubicType.LOOP;
@@ -609,11 +614,9 @@ export class VectorDataGenerator
         const Rx = diff * Px + t * Qx;
         const Ry = diff * Py + t * Qy;
 
-        const seg1 = new Segment(x1, y1, Rx, Ry, Lx, Ly, Px, Py);
-        const seg2 = new Segment(Rx, Ry, x2, y2, Qx, Qy, Nx, Ny);
         return [
-            seg1,
-            seg2,
+            new Segment(x1, y1, Rx, Ry, Lx, Ly, Px, Py),
+            new Segment(Rx, Ry, x2, y2, Qx, Qy, Nx, Ny),
         ];
     }
 
@@ -623,7 +626,6 @@ export class VectorDataGenerator
         segmentIndex: number,
 
         vector: Segment[],
-        vectorIndex: number,
 
         ratio1: number,
         ratio2: number,
@@ -639,11 +641,12 @@ export class VectorDataGenerator
                 segment.x2, segment.y2,
             );
 
-            segments[1].flip = true;
-            segments[0].split = true;
-            segments[1].split = true;
+            // segments[1].flip = true;
+            // segments[0].split = true;
+            // segments[1].split = true;
 
             vector.splice(segmentIndex, 1, ...segments);
+            console.log("split 1");
 
             return true;
         }
@@ -658,11 +661,12 @@ export class VectorDataGenerator
                 segment.x2, segment.y2,
             );
 
-            segments[0].flip = true;
-            segments[0].split = true;
-            segments[1].split = true;
+            // segments[0].flip = true;
+            // segments[0].split = true;
+            // segments[1].split = true;
 
             vector.splice(segmentIndex, 1, ...segments);
+            console.log("split 2");
 
             return true;
         }
@@ -726,40 +730,34 @@ export class VectorDataGenerator
                 let d2 = -a2 + 3 * a3;
                 let d3 = 3 * a3;
 
-                const l = Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
-                d1 /= l;
-                d2 /= l;
-                d3 /= l;
+                const l = 1 / Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
+                d1 *= l;
+                d2 *= l;
+                d3 *= l;
 
-                console.log("=======");
-                console.log(d1, d2, d3);
                 const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
-                console.log(
-                    CubicType[cubicType],
-                    segment.x1, segment.y1,
-                    segment.cx1, segment.cy1,
-                    segment.cx2, segment.cy2,
-                    segment.x2, segment.y2,
-                );
-
                 let flip = false;
 
                 switch (cubicType)
                 {
                     case CubicType.SERPENTINE:
                     {
-                        const sqrt = Math.sqrt(9 * d2 * d2 - 12 * d1 * d3);
+                        let sqr = 9 * d2 * d2 - 12 * d1 * d3;
+                        if (isZero(sqr)) sqr = 0;
 
-                        const ls = 3 * d2 - sqrt;
-                        const lt = 6 * d1;
+                        const sqrt = Math.sqrt(sqr);
 
-                        const ms = 3 * d2 + sqrt;
-                        const mt = lt;
+
+                        let ls = 3 * d2 - sqrt;
+                        let lt = 6 * d1;
+
+                        let ms = 3 * d2 + sqrt;
+                        let mt = lt;
 
                         const ratio1 = ls / lt;
                         const ratio2 = ms / mt;
 
-                        if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
+                        if (this.subdivideSegment(segment, j, vector, ratio1, ratio2))
                         {
                             j--;
                             continue;
@@ -786,6 +784,9 @@ export class VectorDataGenerator
                         M[10] = -(ltls2 * ltls);
                         M[11] = -(mtms2 * mtms);
 
+                        // HACK: yea we flip the signs,
+                        // cos we flipped the check in the shader,
+                        // it's a bit backwards
                         M[0] = -M[0];
                         M[1] = -M[1];
 
@@ -798,7 +799,7 @@ export class VectorDataGenerator
                         M[9] = -M[9];
                         M[10] = -M[10];
 
-                        if (Math.abs(d1) > EPSILON && d1 < 0)
+                        if (lessThanZero(d1))
                         {
                             flip = true;
                         }
@@ -807,21 +808,27 @@ export class VectorDataGenerator
                     }
                     case CubicType.LOOP:
                     {
-                        const sqrt = Math.sqrt(4 * d1 * d3 - 3 * d2 * d2);
+                        let sqr = 4 * d1 * d3 - 3 * d2 * d2;
+                        if (isZero(sqr)) sqr = 0;
 
-                        const ls = d2 - sqrt;
-                        const lt = 2 * d1;
+                        const sqrt = Math.sqrt(sqr);
 
-                        const ms = d2 + sqrt;
-                        const mt = lt;
+
+                        let ls = d2 - sqrt;
+                        let lt = 2 * d1;
+
+                        let ms = d2 + sqrt;
+                        let mt = lt;
 
                         const ltls = lt - ls;
                         const mtms = mt - ms;
+                        const ltls2 = ltls * ltls;
+                        const mtms2 = mtms * mtms;
 
                         const ratio1 = ls / lt;
                         const ratio2 = ms / mt;
 
-                        if (this.subdivideSegment(segment, j, vector, i, ratio1, ratio2))
+                        if (this.subdivideSegment(segment, j, vector, ratio1, ratio2))
                         {
                             j--;
                             continue;
@@ -840,28 +847,19 @@ export class VectorDataGenerator
                         M[8] = THIRD * mtms * (ls * (mt - 3 * ms) + 2 * lt * ms);
 
                         M[9] = ltls * mtms;
-                        M[10] = -ltls * ltls * mtms;
-                        M[11] = -ltls * mtms * mtms;
+                        M[10] = -ltls2 * mtms;
+                        M[11] = -ltls * mtms2;
 
-                        console.log("k0 and k1", M[0], M[3]);
-                        console.log(segment.split);
-                        if (!segment.split)
+                        if (segment.split)
                         {
-                            if (Math.abs(d1) > EPSILON && d1 > 0 && Math.abs(M[3]) >= EPSILON && M[3] < 0)
-                            {
-                                flip = true;
-                            }
-                            else if (Math.abs(d1) > EPSILON && d1 < 0 && Math.abs(M[3]) >= EPSILON && M[3] > 0)
-                            {
-                                flip = true;
-                            }
-
-                            // if (Math.abs(d3) >= EPSILON && d3 < 0)
-                            // {
-                            //     flip = true;
-                            // }
+                            flip = segment.flip;
+                        }
+                        else if (!isZero(d1))
+                        {
+                            flip = (d1 > 0 && M[3] < 0) || (d1 < 0 && M[3] > 0) || (d1 < 0 && M[3] < 0);
                         }
 
+                        // this same trick doesn't fix Loops though
                         // M[0] = -M[0];
                         // M[1] = -M[1];
                         //
@@ -874,20 +872,15 @@ export class VectorDataGenerator
                         // M[9] = -M[9];
                         // M[10] = -M[10];
 
-                        if (segment.flip)
-                        {
-                            flip = true;
-                        }
-
                         break;
                     }
                     case CubicType.CUSP:
                     {
-                        const ls = d3;
-                        const lt = 3 * d2;
+                        let ls = d3;
+                        let lt = 3 * d2;
 
                         const ratio = ls / lt;
-                        if (this.subdivideSegment(segment, j, vector, i, ratio, -1))
+                        if (this.subdivideSegment(segment, j, vector, ratio, -1))
                         {
                             j--;
                             continue;
@@ -910,7 +903,7 @@ export class VectorDataGenerator
                         M[11] = 1;
 
                         // HACK: hack
-                        if (vector[j + 1].flip)
+                        if (vector[j + 1]?.flip)
                         {
                             flip = true;
                         }
@@ -935,7 +928,8 @@ export class VectorDataGenerator
                         M[10] = -1;
                         M[11] = 1;
 
-                        if (Math.abs(d3) > EPSILON && d3 < 0)
+                        // NOTE: this might need to be the other way around
+                        if (lessThanZero(d3))
                         {
                             flip = true;
                         }
@@ -946,13 +940,15 @@ export class VectorDataGenerator
                     {
                         rows.push(
                             [
-                                [segment.x1, segment.y1, 0, 0, 0],
-                                [segment.x2, segment.y2, 0, 0, 0],
+                                [segment.x1, segment.y1, 0.5, 0.5, 0.5],
+                                [segment.x2, segment.y2, 0.5, 0.5, 0.5],
                             ]
                         );
+
                         continue;
                     }
-                    case CubicType.POINT: continue;
+                    case CubicType.POINT:
+                        continue;
                 }
 
                 if (flip)
@@ -978,8 +974,6 @@ export class VectorDataGenerator
                         [segment.x2,   segment.y2,   M[9], M[10], M[11]],
                     ]
                 );
-
-                console.log(rows.at(-1));
             }
 
             const row: VectorGeometryRow[] = [];
@@ -988,10 +982,10 @@ export class VectorDataGenerator
             {
                 const segment = vector[j];
 
-                // NOTE: Figma uses 0.5 for k, l and m for line segments.
-                // For some reason for us it doesn't work, so we use 0 instead
-                row.push([segment.x1, segment.y1, 0, 0, 0]);
-                row.push([segment.x2, segment.y2, 0, 0, 0]);
+                row.push(
+                    [segment.x1, segment.y1, 0.5, 0.5, 0.5],
+                    [segment.x2, segment.y2, 0.5, 0.5, 0.5]
+                );
             }
 
             rows.push(row);

@@ -5,13 +5,9 @@ import Shader       from "./gl/shader";
 
 import parseSVG from "svg-path-parser";
 
-// import Quad         from "./gl/primitives/quad";
 import { Polygon } from "./gl/primitives/polygon";
 import { GradientQuad } from "./gl/primitives/gradientQuad";
 
-
-// import Vert from "@/assets/shaders/vert.glsl";
-// import Frag from "@/assets/shaders/frag.glsl"
 import Vert from "@/assets/shaders/gradient/2d/vert.glsl";
 import Frag from "@/assets/shaders/gradient/2d/frag.glsl";
 
@@ -19,8 +15,8 @@ import PolyVert from "@/assets/shaders/vector/vert.glsl";
 import PolyFrag from "@/assets/shaders/vector/frag.glsl";
 
 // @ts-ignore
-import Font from "@/assets/fonts/font.ttf?uint8array";
-import { getFont } from "./utils/font";
+// import Font from "@/assets/fonts/font.ttf?uint8array";
+// import { getFont } from "./utils/font";
 
 import {
     triangulateVectorGeometryFromData,
@@ -108,6 +104,7 @@ export default class App2D
 
         let oldX = 0;
         let oldY = 0;
+
         this._canvas.addEventListener("mousedown", (e: MouseEvent) =>
         {
             drag = true;
@@ -137,8 +134,8 @@ export default class App2D
 
             if (e.code === "Escape" || e.code === "KeyQ")
             {
-                cancelAnimationFrame(requestId);
-                requestId = -1;
+                // cancelAnimationFrame(requestId);
+                // requestId = -1;
                 return;
             }
 
@@ -199,8 +196,6 @@ export default class App2D
         // const commands = [parseSVG.parseSVG("M21.48 23.54 S21.58 26.12 20 27.78 Z")];
         // const commands = [parseSVG.parseSVG("M100,100 C120,80 140,120 160,100Z")];
 
-        // const now = performance.now();
-
         // gen
         //     .moveTo(20, 20)
         //     .cubicTo(220, 20, 40, 0, 200, 90)
@@ -242,7 +237,6 @@ export default class App2D
         function buildFrame(commands: parseSVG.Command[][])
         {
             gen.reset();
-            // let str = "";
             for (let i = 0; i < commands.length; i++)
             {
                 const frame = commands[i];
@@ -263,72 +257,55 @@ export default class App2D
                     {
                         case "M":
                             gen.moveTo(command.x, command.y);
-                            // str += `M ${command.x} ${command.y} `;
                             break;
                         case "m":
                             gen.moveToRelative(command.x, command.y);
-                            // str += `m ${command.x} ${command.y} `;
                             break;
                         case "L":
                             gen.lineTo(command.x, command.y);
-                            // str += `L ${command.x} ${command.y} `;
                             break;
                         case "l":
                             gen.lineToRelative(command.x, command.y);
-                            // str += `l ${command.x} ${command.y} `;
                             break;
                         case "V":
                             gen.verticalTo(command.y);
-                            // str += `V ${command.y} `;
                             break;
                         case "v":
                             gen.vertivalToRelative(command.y);
-                            // str += `v ${command.y} `;
                             break;
                         case "H":
                             gen.horizontalTo(command.x);
-                            // str += `H ${command.x} `;
                             break;
                         case "h":
                             gen.horizontalToRelative(command.x);
-                            // str += `h ${command.x} `;
                             break;
                         case "C":
                             gen.cubicTo(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
-                            // str += `C ${command.x1} ${command.y1} ${command.x2} ${command.y2} ${command.x} ${command.y} `;
                             break;
                         case "c":
                             gen.cubicToRelative(command.x, command.y, command.x1, command.y1, command.x2, command.y2);
-                            // str += `c ${command.x1} ${command.y1} ${command.x2} ${command.y2} ${command.x} ${command.y} `;
                             break;
                         case "S":
                             gen.sCubicTo(command.x, command.y, command.x2, command.y2);
-                            // str += `S ${command.x2} ${command.y2} ${command.x} ${command.y} `;
                             break;
                         case "s":
                             gen.sCubicToRelative(command.x, command.y, command.x2, command.y2);
-                            // str += `s ${command.x2} ${command.y2} ${command.x} ${command.y} `;
                             break;
                         case "Q":
                             gen.quadTo(command.x, command.y, command.x1, command.y1);
-                            // str += `Q ${command.x1} ${command.y1} ${command.x} ${command.y} `;
                             break;
                         case "q":
                             gen.quadToRelative(command.x, command.y, command.x1, command.y1);
-                            // str += `q ${command.x1} ${command.y1} ${command.x} ${command.y} `;
                             break;
                         case "T":
                             gen.tQuadTo(command.x, command.y);
-                            // str += `T ${command.x} ${command.y} `;
                             break;
                         case "t":
                             gen.tQuadToRelative(command.x, command.y);
-                            // str += `t ${command.x} ${command.y} `;
                             break;
                         case "z":
                         case "Z":
                             gen.close();
-                            // str += "Z ";
                             break;
                     }
                 }
@@ -338,28 +315,9 @@ export default class App2D
             const rows = gen.buildGeometry();
             const [vertices, len] = triangulateVectorGeometryFromData(rows);
 
-            // let j = 0;
-            // for (let i = 0; i < len; i++)
-            // {
-            //     const x = vertices[j] - 2;
-            //     const y = vertices[j + 1] - 2;
-            //     const k = vertices[j + 2];
-            //     const l = vertices[j + 3];
-            //     const m = vertices[j + 4];
-            //
-            //     console.log(x, y, k, l, m);
-            //     j += 5;
-            // }
-
             poly.setData(vertices, len);
         }
 
-        // console.log(performance.now() - now);
-        // poly.model()
-        //     // .scale(1, -1)
-        //     .translate(0, 20);
-
-        // const quad = new Quad(0, 0, 1450, 450);
         const quad = new GradientQuad(0, 0, 500, 500);
 
 
@@ -419,8 +377,6 @@ export default class App2D
                 camera.setScale(this._scale);
                 camera.update(gl.canvas.width, gl.canvas.height);
 
-                // NOTE: This case might just work with everything, LMAO
-                // polygons with holes
                 gl.disable(gl.BLEND);
                 gl.enable(gl.STENCIL_TEST);
                 {
@@ -465,7 +421,6 @@ export default class App2D
                     shaderQuad.unbind();
                 }
 
-                // polygons with curves
                 // gl.enable(gl.BLEND);
                 // gl.enable(gl.STENCIL_TEST);
                 // {
