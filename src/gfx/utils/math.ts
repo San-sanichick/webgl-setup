@@ -52,3 +52,10 @@ export function equalOrLessThanZero(val: number): boolean
     const abs = Math.abs(val);
     return abs <= EPSILON || (abs > EPSILON && val < 0)
 }
+
+export function roundToZero(val: number): number
+{
+    if (Math.abs(val) <= EPSILON) return 0;
+
+    return val;
+}

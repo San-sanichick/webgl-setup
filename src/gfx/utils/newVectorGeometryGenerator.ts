@@ -4,7 +4,8 @@ import {
     EPSILON,
     greaterThanZero,
     isZero,
-    lessThanZero
+    lessThanZero,
+    roundToZero,
 } from "./math";
 
 const THIRD = 1 / 3;
@@ -550,12 +551,6 @@ export class VectorDataGenerator
 
     private static getCubicType(d1: number, d2: number, d3: number): CubicType
     {
-        let D = 3 * d2 * d2 - 4 * d1 * d3;
-        if (Math.abs(D) <= EPSILON) D = 0;
-
-        let discr = d1 * d1 * D;
-        if (Math.abs(discr) <= EPSILON) discr = 0;
-
         if (d1 === 0 && d2 === 0)
         {
             if (d3 === 0) return CubicType.LINE;
@@ -563,6 +558,8 @@ export class VectorDataGenerator
             return CubicType.QUADRATIC;
         }
 
+        const D = roundToZero(3 * d2 * d2 - 4 * d1 * d3);
+        const discr = roundToZero(d1 * d1 * D);
 
         if (isZero(discr))
         {
@@ -736,28 +733,26 @@ export class VectorDataGenerator
                 d2 *= l;
                 d3 *= l;
 
-                if (Math.abs(d1) <= EPSILON) d1 = 0;
-                if (Math.abs(d2) <= EPSILON) d2 = 0;
-                if (Math.abs(d3) <= EPSILON) d3 = 0;
+                d1 = roundToZero(d1);
+                d2 = roundToZero(d2);
+                d3 = roundToZero(d3);
 
-                const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
+                let cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
                 let flip = false;
+
 
                 switch (cubicType)
                 {
                     case CubicType.SERPENTINE:
                     {
-                        let sqr = 9 * d2 * d2 - 12 * d1 * d3;
-                        if (isZero(sqr)) sqr = 0;
-
+                        const sqr = roundToZero(9 * d2 * d2 - 12 * d1 * d3);
                         const sqrt = Math.sqrt(sqr);
 
+                        const ls = roundToZero(3 * d2 - sqrt);
+                        const lt = roundToZero(6 * d1);
 
-                        let ls = 3 * d2 - sqrt;
-                        let lt = 6 * d1;
-
-                        let ms = 3 * d2 + sqrt;
-                        let mt = lt;
+                        const ms = roundToZero(3 * d2 + sqrt);
+                        const mt = lt;
 
                         const ratio1 = ls / lt;
                         const ratio2 = ms / mt;
@@ -768,10 +763,12 @@ export class VectorDataGenerator
                             continue;
                         }
 
+
                         const ltls = (lt - ls);
                         const mtms = (mt - ms);
                         const ltls2 = ltls * ltls;
                         const mtms2 = mtms * mtms;
+
 
                         M[0] = ls * ms;
                         M[1] = ls * ls * ls;
@@ -813,22 +810,14 @@ export class VectorDataGenerator
                     }
                     case CubicType.LOOP:
                     {
-                        let sqr = 4 * d1 * d3 - 3 * d2 * d2;
-                        if (isZero(sqr)) sqr = 0;
-
+                        const sqr = roundToZero(4 * d1 * d3 - 3 * d2 * d2);
                         const sqrt = Math.sqrt(sqr);
 
+                        const ls = d2 - sqrt;
+                        const lt = 2 * d1;
 
-                        let ls = d2 - sqrt;
-                        let lt = 2 * d1;
-
-                        let ms = d2 + sqrt;
-                        let mt = lt;
-
-                        const ltls = lt - ls;
-                        const mtms = mt - ms;
-                        const ltls2 = ltls * ltls;
-                        const mtms2 = mtms * mtms;
+                        const ms = d2 + sqrt;
+                        const mt = lt;
 
                         const ratio1 = ls / lt;
                         const ratio2 = ms / mt;
@@ -838,6 +827,13 @@ export class VectorDataGenerator
                             j--;
                             continue;
                         }
+
+
+                        const ltls = lt - ls;
+                        const mtms = mt - ms;
+                        const ltls2 = ltls * ltls;
+                        const mtms2 = mtms * mtms;
+
 
                         M[0] = ls * ms;
                         M[1] = ls * ls * ms;
@@ -883,8 +879,8 @@ export class VectorDataGenerator
                     }
                     case CubicType.CUSP:
                     {
-                        let ls = d3;
-                        let lt = 3 * d2;
+                        const ls = d3;
+                        const lt = 3 * d2;
 
                         const ratio = ls / lt;
                         if (this.subdivideSegment(segment, j, vector, ratio, -1))
