@@ -553,26 +553,27 @@ export class VectorDataGenerator
         const D = 3 * d2 * d2 - 4 * d1 * d3;
         const discr = d1 * d1 * D;
 
-        if (
-            isZero(d1) &&
-            isZero(d2) &&
-            isZero(d3)
-        )
+        if (d1 === 0 && d2 === 0)
         {
-            return CubicType.LINE;
-        }
+            if (d3 === 0) return CubicType.LINE;
 
-        if (isZero(d1) && isZero(d2))
-        {
             return CubicType.QUADRATIC;
         }
 
+
         if (isZero(discr))
         {
-            if (isZero(d1) && greaterThanZero(d2))
+            if (d1 === 0 && d2 !== 0)
                 return CubicType.CUSP;
 
-            return CubicType.LOOP;
+            if (D < 0)
+            {
+                return CubicType.LOOP;
+            }
+            else
+            {
+                return CubicType.SERPENTINE;
+            }
         }
         else
         {
@@ -689,41 +690,40 @@ export class VectorDataGenerator
             {
                 const segment = vector[j];
 
-                if (segment.isLine()) continue;
-                if (segment.isQuadratic()) continue;
+                if (
+                    segment.isLine() ||
+                    segment.isQuadratic()
+                ) continue;
+
 
                 const B01 = segment.x1;
                 const B02 = segment.y1;
-                const B03 = 1;
 
                 const B11 = segment.cx1!;
                 const B12 = segment.cy1!;
-                const B13 = 1;
 
                 const B21 = segment.cx2!;
                 const B22 = segment.cy2!;
-                const B23 = 1;
 
                 const B31 = segment.x2;
                 const B32 = segment.y2;
-                const B33 = 1;
 
                 const a1 = determinant3x3(
-                    B01, B02, B03,
-                    B31, B32, B33,
-                    B21, B22, B23,
+                    B01, B02, 1,
+                    B31, B32, 1,
+                    B21, B22, 1,
                 );
 
                 const a2 = determinant3x3(
-                    B11, B12, B13,
-                    B01, B02, B03,
-                    B31, B32, B33,
+                    B11, B12, 1,
+                    B01, B02, 1,
+                    B31, B32, 1,
                 );
 
                 const a3 = determinant3x3(
-                    B21, B22, B23,
-                    B11, B12, B13,
-                    B01, B02, B03,
+                    B21, B22, 1,
+                    B11, B12, 1,
+                    B01, B02, 1,
                 );
 
                 let d1 = a1 - 2 * a2 + 3 * a3;
@@ -734,6 +734,10 @@ export class VectorDataGenerator
                 d1 *= l;
                 d2 *= l;
                 d3 *= l;
+
+                if (Math.abs(d1) <= EPSILON) d1 = 0;
+                if (Math.abs(d2) <= EPSILON) d2 = 0;
+                if (Math.abs(d3) <= EPSILON) d3 = 0;
 
                 const cubicType = VectorDataGenerator.getCubicType(d1, d2, d3);
                 let flip = false;
@@ -854,9 +858,12 @@ export class VectorDataGenerator
                         {
                             flip = segment.flip;
                         }
-                        else if (!isZero(d1))
+                        else if (!isZero(d1) && !isZero(M[3]))
                         {
-                            flip = (d1 > 0 && M[3] < 0) || (d1 < 0 && M[3] > 0) || (d1 < 0 && M[3] < 0);
+                            flip =
+                                (d1 > 0 && M[3] < 0) ||
+                                (d1 < 0 && M[3] > 0) ||
+                                (d1 < 0 && M[3] < 0); // this fixes some curves
                         }
 
                         // this same trick doesn't fix Loops though
