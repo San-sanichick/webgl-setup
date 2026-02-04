@@ -916,16 +916,16 @@ export class VectorDataGenerator
                         M[1] = 0;
                         M[2] = 0;
 
-                        M[3] = -QUAD_K2;
+                        M[3] = QUAD_K2;
                         M[4] = 0;
                         M[5] = QUAD_K2;
 
-                        M[6] = -QUAD_K3;
-                        M[7] = -QUAD_L3;
+                        M[6] = QUAD_K3;
+                        M[7] = QUAD_L3;
                         M[8] = QUAD_K3;
 
-                        M[9] = -1;
-                        M[10] = -1;
+                        M[9]  = 1;
+                        M[10] = 1;
                         M[11] = 1;
 
                         // NOTE: this might need to be the other way around
@@ -962,7 +962,7 @@ export class VectorDataGenerator
                     M[6] = -M[6];
                     M[7] = -M[7];
 
-                    M[9] = -M[9];
+                    M[9]  = -M[9];
                     M[10] = -M[10];
                 }
 
