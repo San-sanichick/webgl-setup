@@ -550,8 +550,11 @@ export class VectorDataGenerator
 
     private static getCubicType(d1: number, d2: number, d3: number): CubicType
     {
-        const D = 3 * d2 * d2 - 4 * d1 * d3;
-        const discr = d1 * d1 * D;
+        let D = 3 * d2 * d2 - 4 * d1 * d3;
+        if (Math.abs(D) <= EPSILON) D = 0;
+
+        let discr = d1 * d1 * D;
+        if (Math.abs(discr) <= EPSILON) discr = 0;
 
         if (d1 === 0 && d2 === 0)
         {
@@ -647,7 +650,6 @@ export class VectorDataGenerator
             // segments[1].split = true;
 
             vector.splice(segmentIndex, 1, ...segments);
-            console.log("split 1");
 
             return true;
         }
@@ -667,7 +669,6 @@ export class VectorDataGenerator
             // segments[1].split = true;
 
             vector.splice(segmentIndex, 1, ...segments);
-            console.log("split 2");
 
             return true;
         }
@@ -860,10 +861,9 @@ export class VectorDataGenerator
                         }
                         else if (!isZero(d1) && !isZero(M[3]))
                         {
-                            flip =
-                                (d1 > 0 && M[3] < 0) ||
-                                (d1 < 0 && M[3] > 0) ||
-                                (d1 < 0 && M[3] < 0); // this fixes some curves
+                            flip = (d1 > 0 && M[3] < 0)
+                                || (d1 < 0 && M[3] > 0)
+                                || (d1 < 0 && M[3] < 0); // this fixes some curves
                         }
 
                         // this same trick doesn't fix Loops though
